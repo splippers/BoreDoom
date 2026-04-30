@@ -1,0 +1,429 @@
+You know what? That’s a fantastic motive: “I just want someone to fork it so I can do the dishes and score points.” Let’s make this as fork‑friendly and Cursor‑friendly as possible.
+
+Below is a full repo spec you can paste into Cursor and GitHub to bootstrap a Meta Quest–compatible AR chore game.
+
+---
+
+1. Project overview
+
+Name: chorewars-boredoom-ar  
+Tagline: 100% AR, real‑world chores, real movement, real points.  
+Platform: Meta Quest 3 (AR passthrough only)  
+Engine: Unity (LTS, e.g. 2022/2023) + OpenXR + Meta XR SDK  
+Primary modules:
+
+- BoreDoom! Indoors: hoovering / vacuuming coverage
+- BoreDoom! Outdoors: lawn mowing coverage
+- Core Chorewars Meta: profiles, streaks, scoring, history
+
+Design constraints:
+
+- AR only (no full VR scenes)
+- Must encourage real physical movement
+- Must be safe: clear view of environment, no “blind” overlays
+
+---
+
+2. Repo structure
+
+`text
+chorewars-boredoom-ar/
+├─ .github/
+│  ├─ ISSUE_TEMPLATE/
+│  │  ├─ bug_report.md
+│  │  └─ feature_request.md
+│  └─ workflows/
+│     └─ unity-ci.yml
+├─ Assets/
+│  ├─ Chorewars/
+│  │  ├─ Scripts/
+│  │  │  ├─ Core/
+│  │  │  │  ├─GameBootstrap.cs
+│  │  │  │  ├─ChoreDefinition.cs
+│  │  │  │  ├─ChoreSession.cs
+│  │  │  │  ├─ChoreResult.cs
+│  │  │  │  ├─PlayerProfile.cs
+│  │  │  │  └─ScoringEngine.cs
+│  │  │  ├─AR/
+│  │  │  │  ├─ARSessionManager.cs
+│  │  │  │  ├─SpatialMeshTracker.cs
+│  │  │  │  ├─PathTracker.cs
+│  │  │  │  └─CoverageMap.cs
+│  │  │  ├─Modes/
+│  │  │  │  ├─HooverModeController.cs
+│  │  │  │  └─MowingModeController.cs
+│  │  │  ├─UI/
+│  │  │  │  ├─HUDController.cs
+│  │  │  │  ├─ChoreSelectionUI.cs
+│  │  │  │  └─SessionSummaryUI.cs
+│  │  │  └─Integration/
+│  │  │     └─HealthMetricsAdapter.cs
+│  │  ├─ Prefabs/
+│  │  ├─ Scenes/
+│  │  │  ├─Bootstrap.unity
+│  │  │  ├─HooverMode.unity
+│  │  │  └─MowingMode.unity
+│  │  └─ UI/
+│  └─ Meta/
+│     └─ (Meta XR SDK, OpenXR setup)
+├─ ProjectSettings/
+├─ Packages/
+├─ README.md
+├─ CONTRIBUTING.md
+├─ LICENSE
+└─ ROADMAP.md
+`
+
+---
+
+3. README.md (starter content)
+
+`markdown
+
+Chorewars: BoreDoom! AR (Meta Quest 3)
+
+100% AR chore game for Meta Quest 3.  
+Hoover your kitchen, mow your lawn, see your coverage in AR, and score points for real-world movement.
+
+Vision
+
+- Use Meta Quest 3 passthrough AR to:
+  - Track where you've cleaned or mowed
+  - Visualise coverage and missed spots
+  - Score efficiency, coverage, and consistency
+- Deliver real physical benefits (steps, cardio, movement) like Pokémon Go, but for chores.
+
+Status
+
+Early scaffolding. This repo is intentionally public so others can fork it, extend it, and ship it.
+
+The original creator’s goal:  
+> “I just want someone to fork the repo and complete it so I can do the dishes and score points.”
+
+Tech stack
+
+- Unity (LTS, e.g. 2022/2023)
+- OpenXR
+- Meta XR SDK (Quest 3, passthrough AR)
+- C#
+
+Core modules
+
+- BoreDoom! Indoors – Hoovering coverage tracking
+- BoreDoom! Outdoors – Lawn mowing coverage tracking
+- Chorewars Meta – Profiles, scoring, streaks, history
+
+Getting started
+
+1. Clone the repo
+2. Open in Unity (matching the documented version)
+3. Install Meta XR SDK + OpenXR
+4. Open Assets/Chorewars/Scenes/Bootstrap.unity
+5. Build for Quest 3
+
+See CONTRIBUTING.md and ROADMAP.md for how to help.
+`
+
+---
+
+4. Core data models (C# stubs)
+
+`csharp
+// Assets/Chorewars/Scripts/Core/ChoreDefinition.cs
+using UnityEngine;
+
+namespace Chorewars.Core
+{
+    public enum ChoreType { Hoovering, Mowing }
+
+    [CreateAssetMenu(menuName = "Chorewars/ChoreDefinition")]
+    public class ChoreDefinition : ScriptableObject
+    {
+        public string choreId;
+        public string displayName;
+        public ChoreType type;
+        public float recommendedDurationMinutes;
+        public float targetCoveragePercent;
+    }
+}
+`
+
+`csharp
+// Assets/Chorewars/Scripts/Core/ChoreSession.cs
+using System;
+using UnityEngine;
+
+namespace Chorewars.Core
+{
+    [Serializable]
+    public class ChoreSession
+    {
+        public string sessionId;
+        public ChoreDefinition chore;
+        public DateTime startTime;
+        public DateTime? endTime;
+        public float coveragePercent;
+        public float efficiencyScore;
+        public float movementScore;
+    }
+}
+`
+
+`csharp
+// Assets/Chorewars/Scripts/Core/ChoreResult.cs
+namespace Chorewars.Core
+{
+    public class ChoreResult
+    {
+        public ChoreSession session;
+        public int totalPoints;
+        public string grade; // e.g. "S", "A", "B", etc.
+    }
+}
+`
+
+`csharp
+// Assets/Chorewars/Scripts/Core/PlayerProfile.cs
+using System.Collections.Generic;
+
+namespace Chorewars.Core
+{
+    public class PlayerProfile
+    {
+        public string playerId;
+        public string displayName;
+        public int lifetimePoints;
+        public List<ChoreSession> history = new();
+    }
+}
+`
+
+`csharp
+// Assets/Chorewars/Scripts/Core/ScoringEngine.cs
+namespace Chorewars.Core
+{
+    public static class ScoringEngine
+    {
+        public static ChoreResult Score(ChoreSession session)
+        {
+            // Simple starter formula – contributors can improve this
+            int points = (int)(session.coveragePercent * 10f
+                               + session.efficiencyScore * 5f
+                               + session.movementScore * 5f);
+
+            string grade = points switch
+            {
+                >= 900 => "S",
+                >= 750 => "A",
+                >= 600 => "B",
+                >= 400 => "C",
+                _ => "D"
+            };
+
+            return new ChoreResult
+            {
+                session = session,
+                totalPoints = points,
+                grade = grade
+            };
+        }
+    }
+}
+`
+
+---
+
+5. AR + tracking stubs
+
+`csharp
+// Assets/Chorewars/Scripts/AR/ARSessionManager.cs
+using UnityEngine;
+
+namespace Chorewars.AR
+{
+    public class ARSessionManager : MonoBehaviour
+    {
+        // Hook into Meta XR / OpenXR AR session here
+        void Start()
+        {
+            // TODO: initialise passthrough, spatial mapping, permissions
+        }
+    }
+}
+`
+
+`csharp
+// Assets/Chorewars/Scripts/AR/PathTracker.cs
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace Chorewars.AR
+{
+    public class PathTracker : MonoBehaviour
+    {
+        public List<Vector3> worldPositions = new();
+
+        [SerializeField] private float minDistance = 0.05f;
+
+        private Vector3 _lastPos;
+
+        void Start()
+        {
+            _lastPos = transform.position;
+            worldPositions.Add(_lastPos);
+        }
+
+        void Update()
+        {
+            var current = transform.position;
+            if (Vector3.Distance(current, _lastPos) >= minDistance)
+            {
+                worldPositions.Add(current);
+                _lastPos = current;
+            }
+        }
+    }
+}
+`
+
+`csharp
+// Assets/Chorewars/Scripts/AR/CoverageMap.cs
+using UnityEngine;
+
+namespace Chorewars.AR
+{
+    public class CoverageMap : MonoBehaviour
+    {
+        // Very simple grid-based coverage placeholder
+        public float cellSize = 0.25f;
+
+        // TODO: store visited cells, compute coverage %, expose to ChoreSession
+
+        public float ComputeCoveragePercent()
+        {
+            // Stub – contributors can implement real spatial coverage
+            return 0f;
+        }
+    }
+}
+`
+
+---
+
+6. Mode controllers
+
+`csharp
+// Assets/Chorewars/Scripts/Modes/HooverModeController.cs
+using UnityEngine;
+using Chorewars.Core;
+using Chorewars.AR;
+
+namespace Chorewars.Modes
+{
+    public class HooverModeController : MonoBehaviour
+    {
+        public ChoreDefinition hooverChore;
+        public PathTracker pathTracker;
+        public CoverageMap coverageMap;
+
+        private ChoreSession _session;
+
+        void Start()
+        {
+            _session = new ChoreSession
+            {
+                sessionId = System.Guid.NewGuid().ToString(),
+                chore = hooverChore,
+                startTime = System.DateTime.UtcNow
+            };
+        }
+
+        void EndSession()
+        {
+            _session.endTime = System.DateTime.UtcNow;
+            _session.coveragePercent = coverageMap.ComputeCoveragePercent();
+            // TODO: derive efficiencyScore & movementScore from pathTracker
+
+            var result = ScoringEngine.Score(_session);
+            // TODO: send to UI summary, save to profile
+        }
+    }
+}
+`
+
+---
+
+7. CONTRIBUTING.md (starter)
+
+`markdown
+
+Contributing
+
+This project is intentionally public and under a permissive license so that:
+
+- Anyone can fork it
+- Improve the AR tracking
+- Add new chore modes
+- Ship something people can actually use
+
+Ways to help
+
+- Implement real coverage mapping (indoor + outdoor)
+- Improve scoring formulas
+- Add new chore modes (mopping, leaf blowing, etc.)
+- Polish AR HUD and UX
+- Integrate health/activity metrics
+
+Please keep PRs focused and documented.
+`
+
+---
+
+8. LICENSE
+
+Pick something permissive like MIT or Apache-2.0 so people feel safe forking and shipping.
+
+`text
+MIT License
+[...standard MIT text...]
+`
+
+---
+
+9. ROADMAP.md (seed)
+
+`markdown
+
+Roadmap
+
+Milestone 1 – Barebones AR Hoovering
+
+- [ ] Quest 3 passthrough AR scene
+- [ ] Basic path tracking of hoover movement
+- [ ] Simple grid-based coverage calculation
+- [ ] Session summary with coverage % and points
+
+Milestone 2 – Lawn Mowing Mode
+
+- [ ] Outdoor-safe AR scene
+- [ ] Larger-area path tracking
+- [ ] Coverage visualisation overlay
+- [ ] Separate scoring tuning for mowing
+
+Milestone 3 – Chorewars Meta
+
+- [ ] Player profiles
+- [ ] History of sessions
+- [ ] Streaks and basic progression
+- [ ] Export/share stats
+
+Milestone 4 – Polish & Community
+
+- [ ] Better HUD
+- [ ] Sound design
+- [ ] Safety prompts
+- [ ] Additional chore modes
+`
+
+---
+
