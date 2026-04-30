@@ -1,4 +1,4 @@
-You know what? That’s a fantastic motive: “I just want someone to fork it so I can do the dishes and score points.” Let’s make this as fork‑friendly and Cursor‑friendly as possible.
+“I just want someone to fork it so I can do the dishes and score points.” Let’s make this as fork‑friendly and Cursor‑friendly as possible.
 
 Below is a full repo spec you can paste into Cursor and GitHub to bootstrap a Meta Quest–compatible AR chore game.
 
@@ -677,4 +677,221 @@ Cursor should:
 7. Leave TODO markers for contributors  
 
 ---
+
+Absolutely — let’s expand the CursorRef with a second block that makes your intent unmistakable:  
+you want a massively extensible, Meta Quest 3–compatible AR chore‑gamification platform, with a working prototype first, and AI‑agent interoperability baked into the architecture from day one.
+
+Below is the next block you can paste directly into your CursorRef file.  
+This block is written in the authoritative, instruction‑driven style Cursor responds to best.
+
+---
+
+📦 CURSORREF BLOCK 2 — EXTENSIBILITY, PROTOTYPE REQUIREMENTS & AI‑AGENT INTEGRATION
+
+PROJECT INTENT (MANDATORY FOR CURSOR)
+This project MUST be built as a highly extensible AR chore‑gamification platform for Meta Quest 3, with the following non‑negotiable goals:
+
+1. 100% AR (no VR scenes, no VR transitions).  
+2. Real‑world physical benefit (movement, steps, cardio, posture, outdoor time).  
+3. Modular architecture that allows new chore modes to be added easily.  
+4. Early working prototype that demonstrates:
+   - AR passthrough  
+   - spatial mesh access  
+   - path tracking  
+   - coverage mapping  
+   - scoring  
+   - basic UI  
+5. Future‑proofing for AI‑agent interactions over local WLAN.  
+6. Public, fork‑friendly, permissive licensing to encourage community development.
+
+Cursor MUST treat this as a platform, not a single game.
+
+---
+
+🧩 EXTENSIBILITY REQUIREMENTS
+
+The repo MUST be structured so that developers can add new chore modes without modifying core systems.
+
+Every chore mode must be a self‑contained module
+Each mode should include:
+
+- its own controller (e.g., HooverModeController.cs)  
+- its own scoring modifiers  
+- its own AR overlays  
+- its own prefabs  
+- its own UI fragments  
+
+Core systems must be mode‑agnostic
+The following systems must NOT contain chore‑specific logic:
+
+- ScoringEngine  
+- PlayerProfile  
+- ChoreSession  
+- ARSessionManager  
+- PathTracker  
+- CoverageMap  
+- HUD framework  
+
+New modes must be pluggable
+Cursor should enforce:
+
+- a ChoreMode interface  
+- a ChoreModeRegistry  
+- a ChoreModeDescriptor ScriptableObject  
+
+This allows contributors to add:
+
+- Mopping  
+- Sweeping  
+- Window cleaning  
+- Leaf blowing  
+- Hedge trimming  
+- Pressure washing  
+- Car washing  
+- Snow shovelling  
+- Raking  
+- Weeding  
+- Pool cleaning  
+
+…without touching core code.
+
+---
+
+🧪 EARLY WORKING PROTOTYPE REQUIREMENTS
+
+Cursor MUST generate a minimal but functional prototype with:
+
+1. AR Passthrough Scene
+- Passthrough enabled  
+- Spatial mesh visible or accessible  
+- Headset + controller/hand tracking  
+
+2. Path Tracking
+- Track headset or controller position  
+- Record world‑space points  
+- Display path in AR (simple line renderer)  
+
+3. Coverage Mapping
+- Grid‑based coverage system  
+- Mark visited cells  
+- Compute coverage %  
+
+4. Scoring
+- Use the starter scoring formula  
+- Display score in AR HUD  
+
+5. UI
+- Chore selection  
+- Session start/stop  
+- Session summary  
+
+6. Two modes implemented
+- Hoovering Mode (indoor)  
+- Mowing Mode (outdoor)  
+
+These modes can be simple, but MUST exist.
+
+---
+
+🌐 AI‑AGENT INTEROPERABILITY REQUIREMENTS
+
+The system MUST be architected so that AI agents running on other devices on the same WLAN can interact with the game.
+
+This is NOT required for the prototype, but the architecture MUST allow it.
+
+Cursor MUST include:
+
+1. A lightweight local network API layer
+Stubbed in Integration/LocalNetworkAPI.cs:
+
+- UDP broadcast discovery  
+- WebSocket server/client stubs  
+- JSON message format  
+- Event hooks for:
+  - “AI agent commentary”  
+  - “AI agent coaching”  
+  - “AI agent challenge mode”  
+  - “AI agent chore assignment”  
+
+2. A message schema
+Cursor must define:
+
+`json
+{
+  "agentId": "string",
+  "messageType": "commentary|instruction|status|challenge",
+  "payload": {}
+}
+`
+
+3. Hooks in the AR HUD
+The HUD must support:
+
+- floating text from AI agents  
+- optional voice‑over triggers  
+- optional “AI coach mode”  
+
+4. No cloud dependency
+All AI interactions must be LAN‑local.
+
+---
+
+🧱 ARCHITECTURAL PRINCIPLES
+
+Cursor MUST follow these principles:
+
+1. Everything is modular
+No monolithic scripts.  
+No hard‑coded chore logic.
+
+2. Everything is documented
+Every script must contain:
+- summary  
+- TODO markers  
+- extension notes  
+
+3. Everything is safe
+AR overlays must NOT obscure hazards.  
+Cursor must enforce:
+- transparent UI  
+- non‑occluding overlays  
+- no full‑screen effects  
+
+4. Everything is fork‑friendly
+The repo must be:
+- readable  
+- documented  
+- permissively licensed  
+- easy to build  
+
+---
+
+🧭 CURSOR ACTIONS REQUIRED
+
+Cursor MUST:
+
+1. Generate the full repo structure.  
+2. Generate all stub scripts.  
+3. Generate README, CONTRIBUTING, ROADMAP, LICENSE.  
+4. Configure Unity for Meta Quest 3 AR.  
+5. Implement the early prototype.  
+6. Implement the extensibility architecture.  
+7. Implement the AI‑agent LAN stubs.  
+8. Leave TODO markers for contributors.  
+
+---
+
+🏁 END OF CURSORREF BLOCK 2
+
+---
+
+If you want, I can now generate:
+
+- Block 3: AI‑Agent Interaction Protocol  
+- Block 4: Visual Style Guide for Future Artists  
+- Block 5: Safety & AR Interaction Rules  
+- Block 6: GitHub Issues Pack (20 starter issues)  
+- Block 7: Marketing copy for the repo  
+
+Just tell me which direction you want to expand next.
 
