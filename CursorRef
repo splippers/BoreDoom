@@ -678,8 +678,7 @@ Cursor should:
 
 ---
 
-Absolutely — let’s expand the CursorRef with a second block that makes your intent unmistakable:  
-you want a massively extensible, Meta Quest 3–compatible AR chore‑gamification platform, with a working prototype first, and AI‑agent interoperability baked into the architecture from day one.
+I want a massively extensible, Meta Quest 3–compatible AR chore‑gamification platform, with a working prototype first, and AI‑agent interoperability baked into the architecture from day one.
 
 Below is the next block you can paste directly into your CursorRef file.  
 This block is written in the authoritative, instruction‑driven style Cursor responds to best.
@@ -895,3 +894,169 @@ If you want, I can now generate:
 
 Just tell me which direction you want to expand next.
 
+
+
+
+
+You’re not being unrealistic here—this is absolutely possible.  
+What you’re asking for is a vertical slice: a small but actually playable system on your Quest 3 that proves the loop works.
+
+Let’s write a CursorRef block that makes that the non‑negotiable outcome.
+
+---
+
+📦 CURSORREF BLOCK 3 — PLAYABLE VERTICAL SLICE (MUST RUN ON META QUEST 3)
+
+> Goal: Produce an actually usable, play‑testable AR chore game on a real Meta Quest 3, not just scaffolding.
+
+---
+
+🎯 Primary objective
+
+Cursor MUST produce a fully buildable Unity project that:
+
+- Compiles without errors
+- Builds to Meta Quest 3
+- Runs on‑device
+- Allows a full chore session to be played and completed
+- Shows coverage and scoring in AR
+
+This is not a mockup.  
+This MUST be a real, testable vertical slice.
+
+---
+
+🧪 Vertical slice definition
+
+The first playable version MUST support:
+
+1. Device: Meta Quest 3  
+2. Mode: Hoovering (indoor)  
+3. Flow:
+   - Put on headset  
+   - Launch app  
+   - See AR passthrough  
+   - Select “Hoovering”  
+   - Press “Start”  
+   - Walk around with a controller in hand (simulating hoover)  
+   - See path drawn in AR  
+   - End session  
+   - See:
+     - coverage %  
+     - points  
+     - grade  
+
+If this loop works, the vertical slice is successful.
+
+---
+
+🧱 Mandatory implementation details
+
+Cursor MUST:
+
+- Configure OpenXR + Meta XR correctly for Quest 3
+- Enable passthrough AR by default
+- Use one controller (or hand) as the “tool” being tracked
+- Attach PathTracker to that tool
+- Implement a simple grid‑based coverage system:
+  - Project tool position onto a horizontal plane
+  - Quantise into cells (e.g. 0.25m x 0.25m)
+  - Mark visited cells
+  - Compute coverage % as:
+    \[
+    \text{coverage} = \frac{\text{visited cells}}{\text{total cells in bounding box}}
+    \]
+- Display:
+  - A simple AR HUD with:
+    - current coverage %
+    - elapsed time
+  - A session summary panel at the end
+
+Graphics can be primitive—functionality is more important than beauty at this stage.
+
+---
+
+🧭 Exact scene requirements
+
+Cursor MUST create:
+
+- Assets/Chorewars/Scenes/Bootstrap.unity
+  - Main entry scene
+  - Simple menu:
+    - “Start Hoovering Session”
+    - “Quit”
+- Assets/Chorewars/Scenes/HooverMode.unity
+  - AR session
+  - Path tracking
+  - Coverage tracking
+  - HUD
+  - “End Session” button
+
+Scene transition:
+
+- Bootstrap → HooverMode → Summary (in same scene or overlay)
+
+---
+
+🧪 On‑device testing assumptions
+
+Cursor MUST assume:
+
+- The user will:
+  - Build via Unity to Quest 3
+  - Install via USB or Wi‑Fi
+  - Test in a real room
+- The environment:
+  - Has a mostly flat floor
+  - Has enough space to walk around
+- The prototype:
+  - Does NOT need perfect coverage accuracy
+  - DOES need to feel responsive and coherent
+
+---
+
+🧠 UX constraints
+
+Cursor MUST ensure:
+
+- AR overlays are:
+  - Minimal
+  - Non‑occluding
+  - High‑contrast but transparent
+- No full‑screen effects
+- No teleportation or artificial locomotion
+- No blocking popups during movement
+
+---
+
+🧩 Debugging aids
+
+Cursor SHOULD include:
+
+- A debug toggle (e.g. DEBUG_OVERLAYS) to:
+  - Show grid cells
+  - Show path points
+- Simple logging to console for:
+  - Session start/end
+  - Coverage %
+  - Points
+
+---
+
+✅ Definition of “done” for this block
+
+This block is satisfied ONLY if:
+
+1. The project opens cleanly in Unity.  
+2. The project builds to Quest 3.  
+3. On device:
+   - You can start a hoovering session.  
+   - Move around and see your path.  
+   - End the session.  
+   - See coverage and points.  
+
+If any of these are missing, the vertical slice is NOT complete.
+
+---
+
+🏁 END OF CURSORREF BLOCK 3
