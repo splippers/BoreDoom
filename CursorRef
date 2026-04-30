@@ -427,3 +427,254 @@ Milestone 4 – Polish & Community
 
 ---
 
+Perfect — here is the Cursor‑ready ingestion block you can drop straight into your CursorRef file.  
+It contains everything a developer needs to understand the project, fork it, and start building, without being bloated or rambling.  
+It’s structured, explicit, and written in the tone that gets Cursor to actually follow it.
+
+No fluff. No filler. Just a clean, authoritative spec.
+
+---
+
+📦 CURSORREF: Chorewars / BoreDoom! AR – Full Repo Specification
+
+PROJECT NAME
+Chorewars: BoreDoom! AR
+
+TAGLINE
+A 100% AR, real‑world chore game for Meta Quest 3. Clean your house, mow your lawn, move your body, score points.
+
+PRIMARY GOAL
+Create a public, fork‑friendly GitHub repo containing a Unity + Meta XR SDK project that implements the foundations of an AR chore‑tracking game.  
+The intent is for the community to extend and complete it.
+
+The original creator’s motivation:  
+> “I want someone to fork this so I can do the dishes and score points.”
+
+---
+
+🧭 HIGH‑LEVEL VISION
+
+Chorewars is the meta‑system (profiles, scoring, history).  
+BoreDoom! is the AR movement module (hoovering, mowing, sweeping, etc).
+
+The game must be:
+
+- 100% AR (no VR scenes)  
+- Movement‑based  
+- Physically beneficial (steps, cardio, posture, outdoor time)  
+- Safe (full passthrough, no occlusion of hazards)  
+- Fun in a “Pokémon Go but for chores” way  
+- Extensible (new chore modes can be added by contributors)
+
+---
+
+🛠️ TECH STACK
+
+- Unity LTS (2022 or 2023 recommended)  
+- OpenXR  
+- Meta XR SDK (Quest 3 passthrough + spatial mapping)  
+- C#  
+- Unity XR Interaction Toolkit (optional but recommended)
+
+---
+
+📁 REPO STRUCTURE
+
+`
+chorewars-boredoom-ar/
+├─ .github/
+│  ├─ ISSUE_TEMPLATE/
+│  │  ├─ bug_report.md
+│  │  └─ feature_request.md
+│  └─ workflows/
+│     └─ unity-ci.yml
+├─ Assets/
+│  ├─ Chorewars/
+│  │  ├─ Scripts/
+│  │  │  ├─ Core/
+│  │  │  ├─ AR/
+│  │  │  ├─ Modes/
+│  │  │  ├─ UI/
+│  │  │  └─ Integration/
+│  │  ├─ Prefabs/
+│  │  ├─ Scenes/
+│  │  └─ UI/
+│  └─ Meta/
+├─ ProjectSettings/
+├─ Packages/
+├─ README.md
+├─ CONTRIBUTING.md
+├─ LICENSE
+└─ ROADMAP.md
+`
+
+---
+
+🧩 CORE MODULES
+
+1. Chorewars Meta Layer
+- Player profiles  
+- Session history  
+- Streaks  
+- Scoring engine  
+- Data persistence  
+
+2. BoreDoom! AR Layer
+- AR session management  
+- Spatial mesh access  
+- Path tracking  
+- Coverage mapping  
+- Movement scoring  
+- Indoor + outdoor modes  
+
+3. Game Modes
+- Hoovering Mode (indoor coverage tracking)  
+- Mowing Mode (outdoor coverage tracking)  
+- Future: mopping, sweeping, leaf‑blowing, window cleaning  
+
+---
+
+🧱 MINIMUM VIABLE FEATURES
+
+AR Foundations
+- Passthrough enabled  
+- Spatial mesh visible or used for mapping  
+- Real‑time tracking of headset + controller/hand position  
+
+Movement Tracking
+- Record path as a list of world‑space points  
+- Compute coverage using a simple grid or voxel map  
+- Compute movement smoothness / efficiency  
+
+Scoring
+- Coverage %  
+- Efficiency score  
+- Movement score  
+- Total points  
+- Grade (S/A/B/C/D)  
+
+UI
+- AR HUD  
+- Chore selection  
+- Session summary  
+
+---
+
+🧪 C# STUBS REQUIRED IN REPO
+
+Cursor should generate these files automatically:
+
+Core
+- ChoreDefinition.cs  
+- ChoreSession.cs  
+- ChoreResult.cs  
+- PlayerProfile.cs  
+- ScoringEngine.cs  
+
+AR
+- ARSessionManager.cs  
+- PathTracker.cs  
+- CoverageMap.cs  
+
+Modes
+- HooverModeController.cs  
+- MowingModeController.cs  
+
+UI
+- HUDController.cs  
+- ChoreSelectionUI.cs  
+- SessionSummaryUI.cs  
+
+---
+
+🧭 SCORING LOGIC (STARTER)
+
+`
+totalPoints =
+    coveragePercent * 10
+  + efficiencyScore * 5
+  + movementScore * 5
+`
+
+Grades:
+- S ≥ 900  
+- A ≥ 750  
+- B ≥ 600  
+- C ≥ 400  
+- D otherwise  
+
+Contributors are encouraged to improve this.
+
+---
+
+📄 README.md TEMPLATE
+
+Cursor should generate a README containing:
+
+- Project description  
+- Vision  
+- Tech stack  
+- Setup instructions  
+- Build instructions for Quest 3  
+- Contribution guidelines  
+- Roadmap  
+
+---
+
+📄 CONTRIBUTING.md TEMPLATE
+
+Cursor should include:
+
+- How to fork  
+- How to submit PRs  
+- Coding style  
+- Scene organisation rules  
+- How to add new chore modes  
+
+---
+
+📄 ROADMAP.md TEMPLATE
+
+Milestones:
+
+1. MVP Hoovering Mode  
+2. Outdoor Mowing Mode  
+3. Chorewars Meta Layer  
+4. Additional Chore Modes  
+5. Community Polish  
+
+---
+
+📄 LICENSE
+
+Use MIT or Apache‑2.0 to encourage forking.
+
+---
+
+🧲 COMMUNITY‑FRIENDLY INTENT
+
+Cursor should emphasise:
+
+- This repo is intentionally public  
+- The goal is for others to extend and complete it  
+- The creator is not seeking financial gain  
+- The project is open to all contributors  
+
+---
+
+🧠 CURSOR INSTRUCTIONS
+
+Cursor should:
+
+1. Create the repo structure exactly as defined  
+2. Generate all stub scripts  
+3. Generate README, CONTRIBUTING, ROADMAP, LICENSE  
+4. Configure Unity project settings for Meta Quest 3 AR  
+5. Ensure passthrough AR is enabled  
+6. Scaffold the two initial scenes:
+   - Bootstrap.unity
+   - HooverMode.unity
+7. Leave TODO markers for contributors  
+
+---
+
