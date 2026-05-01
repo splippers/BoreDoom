@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Chorewars.Core;
+using UnityEngine.XR;
 
 namespace Chorewars.UI
 {
@@ -19,6 +20,36 @@ namespace Chorewars.UI
         }
 
         private bool _open = true;
+        private int _selected;
+        private float _nextNavAt;
+
+        private void Update()
+        {
+            if (!_open) return;
+
+            // IMGUI doesn't receive VR "mouse" clicks on device.
+            // Provide controller navigation: thumbstick left/right selects, A activates, B closes.
+            if (!TryGetPrimary2DAxis(out var axis) || !TryGetPrimaryButtonDown(out bool primaryDown, out bool secondaryDown))
+                return;
+
+            float now = Time.unscaledTime;
+            if (now >= _nextNavAt)
+            {
+                if (axis.x <= -0.65f) { _selected = (_selected + 2) % 3; _nextNavAt = now + 0.22f; }
+                else if (axis.x >= 0.65f) { _selected = (_selected + 1) % 3; _nextNavAt = now + 0.22f; }
+            }
+
+            if (secondaryDown) _open = false;
+            if (!primaryDown) return;
+
+            var active = SceneManager.GetActiveScene().name;
+            switch (_selected)
+            {
+                case 0: SwitchTo("HooverMode"); break;
+                case 1: SwitchTo("MowingMode"); break;
+                case 2: SwitchTo(active); break;
+            }
+        }
 
         private void OnGUI()
         {
@@ -41,13 +72,16 @@ namespace Chorewars.UI
             GUILayout.Space(6);
 
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Hoover")) SwitchTo("HooverMode");
-            if (GUILayout.Button("Mowing")) SwitchTo("MowingMode");
+            if (GUILayout.Button((_selected == 0 ? "> " : "") + "Hoover")) SwitchTo("HooverMode");
+            if (GUILayout.Button((_selected == 1 ? "> " : "") + "Mowing")) SwitchTo("MowingMode");
             GUILayout.EndHorizontal();
 
             GUILayout.Space(6);
-            if (GUILayout.Button("Reload scene"))
+            if (GUILayout.Button((_selected == 2 ? "> " : "") + "Reload scene"))
                 SwitchTo(active);
+
+            GUILayout.Space(6);
+            GUILayout.Label("Controller: stick L/R select, A activate, B close");
 
             GUILayout.EndArea();
         }
@@ -59,6 +93,38 @@ namespace Chorewars.UI
             BootstrapSceneRouter.SetLastModeSceneName(sceneName);
             if (Application.CanStreamedLevelBeLoaded(sceneName))
                 SceneManager.LoadScene(sceneName);
+        }
+
+        private static bool TryGetPrimary2DAxis(out Vector2 axis)
+        {
+            axis = default;
+#if CHOREWARS_META_XR
+            axis = OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick, OVRInput.Controller.RTouch);
+            return true;
+#else
+            var dev = InputDevices.GetDeviceAtXRNode(XRNode.RightHand);
+            return dev.isValid && dev.TryGetFeatureValue(CommonUsages.primary2DAxis, out axis);
+#endif
+        }
+
+        private static bool TryGetPrimaryButtonDown(out bool primaryDown, out bool secondaryDown)
+        {
+            primaryDown = false;
+            secondaryDown = false;
+
+#if CHOREWARS_META_XR
+            primaryDown = OVRInput.GetDown(OVRInput.Button.One, OVRInput.Controller.RTouch);     // A
+            secondaryDown = OVRInput.GetDown(OVRInput.Button.Two, OVRInput.Controller.RTouch);   // B
+            return true;
+#else
+            var dev = InputDevices.GetDeviceAtXRNode(XRNode.RightHand);
+            if (!dev.isValid) return false;
+            dev.TryGetFeatureValue(CommonUsages.primaryButton, out bool a);
+            dev.TryGetFeatureValue(CommonUsages.secondaryButton, out bool b);
+            primaryDown = a;
+            secondaryDown = b;
+            return true;
+#endif
         }
     }
 }

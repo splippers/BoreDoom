@@ -1,5 +1,6 @@
 using UnityEngine;
 using Chorewars.AR;
+using UnityEngine.XR;
 
 namespace Chorewars.UI
 {
@@ -19,6 +20,7 @@ namespace Chorewars.UI
         [SerializeField] private float uiScale = 1.6f;
 
         private bool _visible = true;
+        private float _nextActionAt;
 
         private void Awake()
         {
@@ -36,6 +38,37 @@ namespace Chorewars.UI
 #if UNITY_EDITOR
             if (Input.GetKeyDown(KeyCode.F1)) _visible = !_visible;
 #endif
+
+            if (!_visible) return;
+
+            // Controller shortcuts for on-device use (IMGUI isn't clickable in VR).
+            // A: start/stop scan, X: export OBJ, Y: snapshot, B: clear meshes.
+            if (!TryGetButtonsDown(out bool aDown, out bool bDown, out bool xDown, out bool yDown)) return;
+
+            float now = Time.unscaledTime;
+            if (now < _nextActionAt) return;
+
+            if (aDown && scanSession != null)
+            {
+                if (scanSession.IsScanning) scanSession.StopScan();
+                else scanSession.StartScan();
+                _nextActionAt = now + 0.25f;
+            }
+            else if (xDown && scanSession != null)
+            {
+                scanSession.ExportCombinedObj();
+                _nextActionAt = now + 0.25f;
+            }
+            else if (yDown && scanSession != null)
+            {
+                scanSession.TakeSnapshot();
+                _nextActionAt = now + 0.25f;
+            }
+            else if (bDown && meshTracker != null)
+            {
+                meshTracker.ClearAllMeshes();
+                _nextActionAt = now + 0.25f;
+            }
         }
 
         private void OnGUI()
@@ -53,6 +86,7 @@ namespace Chorewars.UI
             if (scanSession != null) GUILayout.Label($"Elapsed: {scanSession.ElapsedSeconds:0.0}s");
             if (scanSession != null) GUILayout.Label($"Coverage: {scanSession.CoveragePercent:0.0}%");
             if (meshTracker != null) GUILayout.Label($"Meshes: {meshTracker.MeshCount}");
+            GUILayout.Label("Controller: A start/stop, X export OBJ, Y snapshot, B clear");
 
 #if CHOREWARS_META_XR
             GUILayout.Space(6);
@@ -120,6 +154,44 @@ namespace Chorewars.UI
             GUILayout.EndArea();
 
             GUI.matrix = old;
+        }
+
+        private static bool TryGetButtonsDown(out bool aDown, out bool bDown, out bool xDown, out bool yDown)
+        {
+            aDown = false;
+            bDown = false;
+            xDown = false;
+            yDown = false;
+
+#if CHOREWARS_META_XR
+            aDown = OVRInput.GetDown(OVRInput.Button.One, OVRInput.Controller.RTouch);
+            bDown = OVRInput.GetDown(OVRInput.Button.Two, OVRInput.Controller.RTouch);
+            xDown = OVRInput.GetDown(OVRInput.Button.Three, OVRInput.Controller.LTouch);
+            yDown = OVRInput.GetDown(OVRInput.Button.Four, OVRInput.Controller.LTouch);
+            return true;
+#else
+            var right = InputDevices.GetDeviceAtXRNode(XRNode.RightHand);
+            var left = InputDevices.GetDeviceAtXRNode(XRNode.LeftHand);
+            if (!right.isValid && !left.isValid) return false;
+
+            if (right.isValid)
+            {
+                right.TryGetFeatureValue(CommonUsages.primaryButton, out bool a);
+                right.TryGetFeatureValue(CommonUsages.secondaryButton, out bool b);
+                aDown = a;
+                bDown = b;
+            }
+
+            if (left.isValid)
+            {
+                left.TryGetFeatureValue(CommonUsages.primaryButton, out bool x);
+                left.TryGetFeatureValue(CommonUsages.secondaryButton, out bool y);
+                xDown = x;
+                yDown = y;
+            }
+
+            return true;
+#endif
         }
     }
 }
