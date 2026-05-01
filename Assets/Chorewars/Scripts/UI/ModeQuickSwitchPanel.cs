@@ -29,18 +29,29 @@ namespace Chorewars.UI
 
             // IMGUI doesn't receive VR "mouse" clicks on device.
             // Provide controller navigation: thumbstick left/right selects, A activates, B closes.
-            if (!TryGetPrimary2DAxis(out var axis) || !TryGetPrimaryButtonDown(out bool primaryDown, out bool secondaryDown))
-                return;
+            // Also provide hands-only pinch: left pinch cycles, right pinch activates.
+            bool hasControllerInput = TryGetPrimary2DAxis(out var axis) && TryGetPrimaryButtonDown(out bool primaryDown, out bool secondaryDown);
+            bool hasPinchInput = HandPinchInput.TryGetPinchDown(out bool leftPinchDown, out bool rightPinchDown);
 
             float now = Time.unscaledTime;
             if (now >= _nextNavAt)
             {
-                if (axis.x <= -0.65f) { _selected = (_selected + 2) % 3; _nextNavAt = now + 0.22f; }
-                else if (axis.x >= 0.65f) { _selected = (_selected + 1) % 3; _nextNavAt = now + 0.22f; }
+                if (hasControllerInput)
+                {
+                    if (axis.x <= -0.65f) { _selected = (_selected + 2) % 3; _nextNavAt = now + 0.22f; }
+                    else if (axis.x >= 0.65f) { _selected = (_selected + 1) % 3; _nextNavAt = now + 0.22f; }
+                }
+
+                if (hasPinchInput && leftPinchDown)
+                {
+                    _selected = (_selected + 1) % 3;
+                    _nextNavAt = now + 0.22f;
+                }
             }
 
-            if (secondaryDown) _open = false;
-            if (!primaryDown) return;
+            if (hasControllerInput && secondaryDown) _open = false;
+            if (hasPinchInput && rightPinchDown == false && (!hasControllerInput || !primaryDown)) return;
+            if (hasControllerInput && !primaryDown && (!hasPinchInput || !rightPinchDown)) return;
 
             var active = SceneManager.GetActiveScene().name;
             switch (_selected)
@@ -82,6 +93,7 @@ namespace Chorewars.UI
 
             GUILayout.Space(6);
             GUILayout.Label("Controller: stick L/R select, A activate, B close");
+            GUILayout.Label("Hands: left pinch cycles, right pinch activates");
 
             GUILayout.EndArea();
         }

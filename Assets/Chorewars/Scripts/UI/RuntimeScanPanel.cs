@@ -21,6 +21,8 @@ namespace Chorewars.UI
 
         private bool _visible = true;
         private float _nextActionAt;
+        private int _pinchSelected;
+        private float _nextPinchNavAt;
 
         private void Awake()
         {
@@ -47,6 +49,25 @@ namespace Chorewars.UI
 
             float now = Time.unscaledTime;
             if (now < _nextActionAt) return;
+
+            // Hands-only pinch fallback:
+            // - Left pinch cycles selected action
+            // - Right pinch activates selected action
+            if (HandPinchInput.TryGetPinchDown(out bool leftPinchDown, out bool rightPinchDown))
+            {
+                if (now >= _nextPinchNavAt && leftPinchDown)
+                {
+                    _pinchSelected = (_pinchSelected + 1) % 4;
+                    _nextPinchNavAt = now + 0.25f;
+                }
+
+                if (rightPinchDown)
+                {
+                    ActivatePinchSelected();
+                    _nextActionAt = now + 0.25f;
+                    return;
+                }
+            }
 
             if (aDown && scanSession != null)
             {
@@ -87,6 +108,7 @@ namespace Chorewars.UI
             if (scanSession != null) GUILayout.Label($"Coverage: {scanSession.CoveragePercent:0.0}%");
             if (meshTracker != null) GUILayout.Label($"Meshes: {meshTracker.MeshCount}");
             GUILayout.Label("Controller: A start/stop, X export OBJ, Y snapshot, B clear");
+            GUILayout.Label($"Hands: left pinch cycles, right pinch activates (selected: {PinchSelectedLabel()})");
 
 #if CHOREWARS_META_XR
             GUILayout.Space(6);
@@ -154,6 +176,39 @@ namespace Chorewars.UI
             GUILayout.EndArea();
 
             GUI.matrix = old;
+        }
+
+        private string PinchSelectedLabel()
+        {
+            return _pinchSelected switch
+            {
+                0 => "Start/Stop",
+                1 => "Export OBJ",
+                2 => "Snapshot",
+                3 => "Clear meshes",
+                _ => "Start/Stop"
+            };
+        }
+
+        private void ActivatePinchSelected()
+        {
+            switch (_pinchSelected)
+            {
+                case 0:
+                    if (scanSession == null) return;
+                    if (scanSession.IsScanning) scanSession.StopScan();
+                    else scanSession.StartScan();
+                    break;
+                case 1:
+                    scanSession?.ExportCombinedObj();
+                    break;
+                case 2:
+                    scanSession?.TakeSnapshot();
+                    break;
+                case 3:
+                    meshTracker?.ClearAllMeshes();
+                    break;
+            }
         }
 
         private static bool TryGetButtonsDown(out bool aDown, out bool bDown, out bool xDown, out bool yDown)
