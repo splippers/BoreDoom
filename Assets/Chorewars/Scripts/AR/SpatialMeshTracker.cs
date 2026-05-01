@@ -95,7 +95,7 @@ namespace Chorewars.AR
                 if (!s.running) s.Start();
 
                 var infos = new List<MeshInfo>();
-                s.GetMeshInfos(infos);
+                if (!s.TryGetMeshInfos(infos)) continue;
 
                 foreach (var info in infos)
                 {

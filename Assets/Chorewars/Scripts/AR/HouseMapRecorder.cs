@@ -118,7 +118,7 @@ namespace Chorewars.AR
             // Ensure manifests are up to date on disk.
             WriteManifest();
 
-            ZipFile.CreateFromDirectory(MapDir, zipPath, CompressionLevel.Fastest, includeBaseDirectory: false);
+            ZipFile.CreateFromDirectory(MapDir, zipPath, System.IO.Compression.CompressionLevel.Fastest, includeBaseDirectory: false);
             return zipPath;
         }
 
