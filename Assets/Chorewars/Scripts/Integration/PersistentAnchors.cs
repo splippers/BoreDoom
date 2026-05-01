@@ -9,7 +9,7 @@ namespace Chorewars.Integration
     /// Quest 3 support typically comes from Meta XR SDK anchor APIs; this file is intentionally a stub
     /// so the core project can compile without Meta packages.
     /// </summary>
-    public class PersistentAnchors : MonoBehaviour
+    public class PersistentAnchors : MonoBehaviour, IHomeOriginProvider
     {
         [Serializable]
         public class AnchorHandle
@@ -19,14 +19,15 @@ namespace Chorewars.Integration
 
         public bool IsSupported => false;
 
-        public void CreateOrUpdateHomeOriginAnchor()
+        public void CreateOrUpdateHomeOrigin(Pose pose)
         {
             // TODO: Implement via Meta XR persistent anchors.
+            _ = pose;
         }
 
-        public bool TryLoadHomeOriginAnchor(out AnchorHandle handle)
+        public bool TryResolveHomeOrigin(out Pose homeOriginPose)
         {
-            handle = null;
+            homeOriginPose = default;
             return false;
         }
     }

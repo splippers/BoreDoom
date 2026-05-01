@@ -5,7 +5,12 @@ namespace Chorewars.Core
     public enum ChoreType
     {
         Hoovering,
-        Mowing
+        Mowing,
+
+        AtticAttack,
+        BasementBust,
+        GarageBarrage,
+        ShedDread
     }
 
     [CreateAssetMenu(menuName = "Chorewars/Chore Definition")]

@@ -5,6 +5,7 @@
 - [ ] Basic path tracking of hoover movement
 - [ ] Simple grid-based coverage calculation
 - [ ] Session summary with coverage % and points
+- [ ] Spatial mesh capture + export (OBJ)
 
 ## Milestone 2 – Lawn Mowing Mode
 - [ ] Outdoor-safe AR scene
@@ -23,3 +24,9 @@
 - [ ] Sound design
 - [ ] Safety prompts
 - [ ] Additional chore modes
+- [ ] Attic Attack! / Basement Bust! / Garage Barrage! / Shed Dread!
+
+## Milestone 5 – Whole-house reconstruction (Matterport-ish)
+- [ ] Persistent anchor “home origin”
+- [ ] Multi-session alignment of scans
+- [ ] Combined export (OBJ/PLY) for external reconstruction tooling

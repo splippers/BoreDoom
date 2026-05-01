@@ -27,5 +27,10 @@ To build a stable, multi-session house model you’ll want:
 - **anchors** (persistent spatial anchors) or a saved reference frame
 - a way to align newly scanned meshes with prior scans
 
-This repo stubs the mesh capture/export. Anchor persistence + multi-session alignment is the next step.
+This repo stubs:
+- `IHomeOriginProvider` (integration seam)
+- `PersistentAnchors` (placeholder provider)
+- `HomeOriginAligner` (applies resolved origin pose to a transform)
+
+Anchor persistence + multi-session alignment is the next step to make scans “stick” across sessions.
 
