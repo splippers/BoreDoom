@@ -26,6 +26,10 @@ In your hoovering scene:
     - `coverageMap` (your `CoverageMap` component)
     - `pathTracker` (optional)
 
+- For zero-editor-UI work, create a GameObject `RuntimeUI`
+  - Add `RuntimeScanPanel`
+  - (optional) assign `scanSession` + `meshTracker` (it can auto-find them)
+
 - Create a GameObject `HooverMode`
   - Add `HooverModeController`
   - Assign:

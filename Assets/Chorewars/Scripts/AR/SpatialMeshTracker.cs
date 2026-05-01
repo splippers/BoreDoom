@@ -32,6 +32,18 @@ namespace Chorewars.AR
         private bool _scanning;
         private float _nextPollAt;
 
+        public int MeshCount => _meshesById.Count;
+
+        public void ClearAllMeshes()
+        {
+            foreach (var kv in _meshGosById)
+            {
+                if (kv.Value != null) Destroy(kv.Value);
+            }
+            _meshGosById.Clear();
+            _meshesById.Clear();
+        }
+
         private void OnEnable()
         {
             RefreshSubsystems();

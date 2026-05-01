@@ -48,6 +48,7 @@ namespace Chorewars.AR
             homeOriginAligner?.ApplyIfAvailable();
 
             IsScanning = true;
+            spatialMeshTracker?.ClearAllMeshes();
             spatialMeshTracker?.StartScanning();
             houseMapRecorder?.Begin();
 
