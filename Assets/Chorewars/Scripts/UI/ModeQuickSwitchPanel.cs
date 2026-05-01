@@ -32,6 +32,11 @@ namespace Chorewars.UI
         private bool _built;
         private bool _buildStarted;
 
+        /// <summary>
+        /// Cached HMD/rig camera — never call FindObjectsByType every frame (that can freeze Quest).
+        /// </summary>
+        private Camera _cachedPlayCamera;
+
         private static Sprite _pitchStripeSprite;
 
         private void Awake()
@@ -46,6 +51,7 @@ namespace Chorewars.UI
 
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
+            _cachedPlayCamera = null;
             ScheduleBuild();
         }
 
@@ -64,7 +70,7 @@ namespace Chorewars.UI
         private IEnumerator CoBuildWorldUi()
         {
             // XR setups often have no Camera.main for the first few frames; wait so World Space UI isn't "black".
-            for (var i = 0; i < 180 && GetPrimaryCamera() == null; i++)
+            for (var i = 0; i < 180 && GetPlayCamera() == null; i++)
                 yield return null;
 
             BuildWorldUi();
@@ -74,7 +80,7 @@ namespace Chorewars.UI
         {
             if (_canvasRoot == null) return;
 
-            var cam = GetPrimaryCamera();
+            var cam = GetPlayCamera();
             if (cam == null) return;
 
             if (_canvas != null)
@@ -86,7 +92,16 @@ namespace Chorewars.UI
             t.rotation = Quaternion.LookRotation(cam.transform.position - t.position, Vector3.up);
         }
 
-        private static Camera GetPrimaryCamera()
+        private Camera GetPlayCamera()
+        {
+            if (_cachedPlayCamera != null && _cachedPlayCamera.isActiveAndEnabled)
+                return _cachedPlayCamera;
+
+            _cachedPlayCamera = FindBestCameraSlow();
+            return _cachedPlayCamera;
+        }
+
+        private static Camera FindBestCameraSlow()
         {
             if (Camera.main != null) return Camera.main;
 
@@ -136,7 +151,7 @@ namespace Chorewars.UI
 
             _canvas = _canvasRoot.AddComponent<Canvas>();
             _canvas.renderMode = RenderMode.WorldSpace;
-            _canvas.worldCamera = GetPrimaryCamera();
+            _canvas.worldCamera = GetPlayCamera();
 
             var rt = _canvasRoot.AddComponent<RectTransform>();
             rt.sizeDelta = new Vector2(1280, 860);
