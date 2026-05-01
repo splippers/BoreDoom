@@ -15,6 +15,7 @@ namespace Chorewars.Modes
         public PathTracker pathTracker;
         public CoverageMap coverageMap;
         public SpatialMeshTracker spatialMeshTracker;
+        public HouseMapRecorder houseMapRecorder;
 
         private ChoreSession _session;
 
@@ -43,6 +44,7 @@ namespace Chorewars.Modes
             };
 
             spatialMeshTracker?.StartScanning();
+            houseMapRecorder?.Begin();
         }
 
         public void End()
@@ -61,6 +63,8 @@ namespace Chorewars.Modes
                 var exportPath = spatialMeshTracker.ExportCurrentSnapshotAsObj("lawn-mow");
                 Debug.Log($"[BoreDOOM] Spatial mesh OBJ exported to: {exportPath}");
             }
+
+            houseMapRecorder?.End();
         }
     }
 }

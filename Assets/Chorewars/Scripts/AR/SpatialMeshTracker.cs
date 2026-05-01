@@ -166,6 +166,8 @@ namespace Chorewars.AR
             var outDir = Application.persistentDataPath;
             var ts = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss");
             var path = Path.Combine(outDir, $"{filenamePrefix}-{ts}.obj");
+            var dir = Path.GetDirectoryName(path);
+            if (!string.IsNullOrWhiteSpace(dir)) Directory.CreateDirectory(dir);
 
             var sb = new StringBuilder(1024 * 1024);
             sb.AppendLine("# BoreDOOM spatial mesh export");
