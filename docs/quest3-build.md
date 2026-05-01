@@ -18,6 +18,14 @@ In your hoovering scene:
   - (optional) Add `HomeOriginAligner` and set `providerComponent` to an `IHomeOriginProvider` implementation
   - Add `HouseMapRecorder` (optional) and assign its `meshTracker`
 
+- Create a GameObject `ScanSession`
+  - Add `HouseScanSessionController`
+  - Assign:
+    - `spatialMeshTracker` (on `AR`)
+    - `houseMapRecorder` (optional)
+    - `coverageMap` (your `CoverageMap` component)
+    - `pathTracker` (optional)
+
 - Create a GameObject `HooverMode`
   - Add `HooverModeController`
   - Assign:
@@ -31,6 +39,11 @@ To avoid needing editor tweaks every run, add a small world-space Canvas and wir
 - `HomeOriginDebugUI.SetHomeOriginToCurrent`
 - `HomeOriginDebugUI.ApplyHomeOrigin`
 - `HomeOriginDebugUI.ExportCombinedObj`
+
+For the simplest “two joined rooms” demo, you can also wire buttons to:
+- `HouseScanSessionController.StartScan`
+- `HouseScanSessionController.StopScan`
+- `HouseScanSessionController.ExportCombinedObj`
 
 `HomeOriginDebugUI` expects references to:
 - `HomeOriginAligner`
