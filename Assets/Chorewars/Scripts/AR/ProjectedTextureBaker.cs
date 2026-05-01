@@ -121,7 +121,7 @@ namespace Chorewars.AR
         private void ApplyMaterialToSpatialMeshes(Material mat)
         {
             // Mesh GameObjects are created under meshParent if configured; we can safely re-skin all MeshRenderers.
-            var renderers = FindObjectsByType<MeshRenderer>(FindObjectsSortMode.None);
+            var renderers = FindObjectsByType<MeshRenderer>(FindObjectsInactive.Exclude);
             for (int i = 0; i < renderers.Length; i++)
             {
                 var r = renderers[i];
