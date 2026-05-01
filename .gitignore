@@ -9,6 +9,13 @@
 [Mm]emoryCaptures/
 UnityLogs/
 
+## ProjectSettings policy:
+## - Track a minimal, reproducible subset (Build Settings + Editor version)
+## - Keep the rest local to avoid churn and leaking environment/service linkage
+/ProjectSettings/*
+!/ProjectSettings/ProjectVersion.txt
+!/ProjectSettings/EditorBuildSettings.asset
+
 ## Asset meta data should only be ignored when the corresponding asset is also ignored
 !/[Aa]ssets/**/*.meta
 
