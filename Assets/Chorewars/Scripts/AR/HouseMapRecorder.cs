@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using Chorewars.Tools;
 using UnityEngine;
 
@@ -103,6 +104,22 @@ namespace Chorewars.AR
             var ts = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss");
             var outPath = Path.Combine(Application.persistentDataPath, $"{filenamePrefix}-{ts}.obj");
             return HouseMapExporter.MergeObjFiles(_snapshots, outPath);
+        }
+
+        public string PackageHouseMapZip(string filenamePrefix = "house-map-package")
+        {
+            Directory.CreateDirectory(MapDir);
+
+            var ts = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss");
+            var zipPath = Path.Combine(Application.persistentDataPath, $"{filenamePrefix}-{ts}.zip");
+
+            if (File.Exists(zipPath)) File.Delete(zipPath);
+
+            // Ensure manifests are up to date on disk.
+            WriteManifest();
+
+            ZipFile.CreateFromDirectory(MapDir, zipPath, CompressionLevel.Fastest, includeBaseDirectory: false);
+            return zipPath;
         }
 
         private void WriteManifest()

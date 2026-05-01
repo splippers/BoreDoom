@@ -53,7 +53,8 @@ This enables `MetaXrHomeOriginProvider` and the extra UI readouts in `RuntimeSca
 4. Press **Apply Home Origin** (loads + aligns; may take a moment on cold start).
 5. **Start scan**, walk RoomA → RoomB, **Stop scan**, **Export combined OBJ**.
 6. Optional: take multiple snapshots across sessions, then press **Merge house-map snapshots → one OBJ** to package everything for offline reconstruction tooling.
-7. If you need to reset anchor state during testing: **Erase Home Origin** (clears persistent storage + local prefs).
+7. Optional: press **Zip house-map folder** to create a single `.zip` of `house-map/` (OBJ snapshots + manifests) for easy `adb pull`.
+8. If you need to reset anchor state during testing: **Erase Home Origin** (clears persistent storage + local prefs).
 
 ## Where exports go
 On device, OBJ snapshots are written to:

@@ -10,6 +10,7 @@ Typical locations include:
 ## What gets written
 - **Combined OBJ exports** from `SpatialMeshTracker.ExportCurrentSnapshotAsObj(...)`
 - **`house-map/` folder** (snapshots + manifests) from `HouseMapRecorder`
+- **Packaged zip** (optional) created by `HouseMapRecorder.PackageHouseMapZip()` / the runtime panel button **Zip house-map folder**
 
 ## Pull files with adb (developer machine)
 
@@ -22,6 +23,7 @@ Examples:
 ```bash
 adb shell ls /sdcard/Android/data/<package>/files/
 adb pull /sdcard/Android/data/<package>/files/house-map ./house-map
+adb pull /sdcard/Android/data/<package>/files/house-map-package-*.zip ./
 ```
 
 ## Notes

@@ -45,7 +45,7 @@ namespace Chorewars.UI
             var old = GUI.matrix;
             GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, Vector3.one * uiScale);
 
-            GUILayout.BeginArea(new Rect(12, 12, 440, 620), GUI.skin.window);
+            GUILayout.BeginArea(new Rect(12, 12, 440, 700), GUI.skin.window);
             GUILayout.Label("BoreDOOM – Scan Panel");
 
             bool scanning = scanSession != null && scanSession.IsScanning;
@@ -104,6 +104,13 @@ namespace Chorewars.UI
             {
                 var path = houseMapRecorder.MergeAllSnapshotsToSingleObj();
                 Debug.Log($"[BoreDOOM] Merged OBJ: {path}");
+            }
+
+            GUI.enabled = houseMapRecorder != null;
+            if (GUILayout.Button("Zip house-map folder"))
+            {
+                var zip = houseMapRecorder.PackageHouseMapZip();
+                Debug.Log($"[BoreDOOM] House-map ZIP: {zip}");
             }
 
             GUI.enabled = meshTracker != null;
