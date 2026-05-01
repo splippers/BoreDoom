@@ -22,6 +22,8 @@ namespace Chorewars.AR
         [SerializeField] private float pollIntervalSeconds = 1.0f;
 
         [Header("Mesh")]
+        [Tooltip("If set, generated mesh GameObjects are parented under this transform (recommended: AR/ScanRoot).")]
+        [SerializeField] private Transform meshParent;
         [SerializeField] private MeshCollider meshColliderPrefab;
         [SerializeField] private bool generateColliders = false;
 
@@ -147,7 +149,8 @@ namespace Chorewars.AR
             if (!_meshGosById.TryGetValue(id, out var go) || go == null)
             {
                 go = new GameObject($"SpatialMesh_{id}");
-                go.transform.SetParent(transform, false);
+                var parent = meshParent != null ? meshParent : transform;
+                go.transform.SetParent(parent, false);
                 var mf = go.AddComponent<MeshFilter>();
                 go.AddComponent<MeshRenderer>(); // optional, material set in editor
                 mf.sharedMesh = mesh;

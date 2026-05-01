@@ -9,60 +9,49 @@ This repo is a scaffold intended to be opened in Unity and extended.
 - Meta XR SDK (import into `Assets/Meta/`)
 - Enable OpenXR for Android (Quest) and the Meta runtime features you need (passthrough + meshing/scene)
 
-## Prototype wiring (minimal)
-In your hoovering scene:
+## Canonical scene wiring (multi-session + multi-room)
+Create this hierarchy:
 
-- Create an empty GameObject `AR`
-  - Add `ARSessionManager`
-  - Add `SpatialMeshTracker`
-  - (optional) Add `HomeOriginAligner` and set `providerComponent` to an `IHomeOriginProvider` implementation
-  - Add `HouseMapRecorder` (optional) and assign its `meshTracker`
+- `XR` (optional grouping)
+- `AR`
+  - `ScanRoot`
+    - `HomeOriginAligner`
+      - `providerComponent` → `MetaXrHomeOriginProvider` (recommended) **or** `PersistentAnchors` (stub)
+    - `SpatialMeshTracker`
+      - set `meshParent` → `ScanRoot` (recommended)
+    - `HouseMapRecorder` (optional)
+      - assign `meshTracker` → `SpatialMeshTracker`
+      - assign `scanRoot` → `ScanRoot`
+  - `MetaXrHomeOriginProvider` (can live anywhere; referenced by aligner)
 
-- Create a GameObject `ScanSession`
-  - Add `HouseScanSessionController`
-  - Assign:
-    - `spatialMeshTracker` (on `AR`)
-    - `houseMapRecorder` (optional)
-    - `coverageMap` (your `CoverageMap` component)
-    - `pathTracker` (optional)
+- `ScanSession`
+  - `HouseScanSessionController`
+    - `spatialMeshTracker` → `AR/ScanRoot/SpatialMeshTracker`
+    - `houseMapRecorder` → optional
+    - `coverageMap` → your `CoverageMap` component (usually on `ScanRoot` or a sibling)
+    - `pathTracker` → optional
+    - `homeOriginAligner` → `AR/ScanRoot/HomeOriginAligner`
 
-- For zero-editor-UI work, create a GameObject `RuntimeUI`
-  - Add `RuntimeScanPanel`
-  - (optional) assign `scanSession` + `meshTracker` (it can auto-find them)
+- `RuntimeUI`
+  - `RuntimeScanPanel` (auto-finds components if left empty)
 
-- Optional but recommended for the demo:
-  - Add a GameObject `PathViz`
-    - Add `PathTracker` to the controller/hand object you want to track
-    - Add a `LineRenderer` (simple material, small width)
-    - Add `PathLineVisualizer` and assign `pathTracker` + `lineRenderer`
+- Optional path visualization:
+  - Put `PathTracker` on the tracked controller/hand object
+  - Add `LineRenderer` + `PathLineVisualizer`
 
-- Create a GameObject `HooverMode`
-  - Add `HooverModeController`
-  - Assign:
-    - `trackedTool` (controller/hand object you want to track)
-    - `coverageMap` (add `CoverageMap` to a GameObject and assign)
-    - `spatialMeshTracker` (the tracker on `AR`)
-    - `houseMapRecorder` (optional)
+## Player Settings (Meta XR anchors)
+When Meta XR SDK is installed, add scripting define symbol:
 
-## On-device home origin + export buttons (debug UI)
-To avoid needing editor tweaks every run, add a small world-space Canvas and wire buttons to:
-- `HomeOriginDebugUI.SetHomeOriginToCurrent`
-- `HomeOriginDebugUI.ApplyHomeOrigin`
-- `HomeOriginDebugUI.ExportCombinedObj`
+- `CHOREWARS_META_XR`
 
-For the simplest “two joined rooms” demo, you can also wire buttons to:
-- `HouseScanSessionController.StartScan`
-- `HouseScanSessionController.StopScan`
-- `HouseScanSessionController.ExportCombinedObj`
+This enables `MetaXrHomeOriginProvider` and the extra UI readouts in `RuntimeScanPanel`.
 
-`HomeOriginDebugUI` expects references to:
-- `HomeOriginAligner`
-- `SpatialMeshTracker`
-
-## Meta XR persistent anchors
-This repo includes `MetaXrHomeOriginProvider` behind a compile define so it compiles without Meta packages.
-
-When you install Meta XR SDK, define `CHOREWARS_META_XR` in Player Settings to enable that code path.
+## On-device flow (prototype)
+1. Stand at your chosen “home corner” (same spot across days).
+2. Move `ScanRoot` to that physical spot/orientation (or move the object `HomeOriginAligner` is on).
+3. Press **Set Home Origin** (saves a persistent spatial anchor UUID).
+4. Press **Apply Home Origin** (loads + aligns; may take a moment on cold start).
+5. **Start scan**, walk RoomA → RoomB, **Stop scan**, **Export combined OBJ**.
 
 ## Where exports go
 On device, OBJ snapshots are written to:
@@ -70,4 +59,6 @@ On device, OBJ snapshots are written to:
 - and/or `Application.persistentDataPath/house-map/` for periodic snapshots
 
 You can retrieve these via Android tooling (ADB) once you know the package name.
+
+See also: `docs/retrieving-exports.md`.
 

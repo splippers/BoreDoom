@@ -40,6 +40,7 @@ The original creator’s goal:
 5. Build for Quest 3
 
 See `CONTRIBUTING.md` and `ROADMAP.md` for how to help.
+See `docs/quest3-build.md` and `docs/retrieving-exports.md` for device wiring + pulling exported meshes.
 
 ## Spatial mapping / “Matterport-ish” capture (prototype)
 This repo includes a starter `XRMeshSubsystem`-based mesh capture script: `SpatialMeshTracker`.

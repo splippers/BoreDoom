@@ -13,7 +13,9 @@ The codebase includes a **Unity/OpenXR mesh-capture path** using `XRMeshSubsyste
 - exports an **OBJ** snapshot into `Application.persistentDataPath`
 
 It also includes `HouseMapRecorder`, which can take periodic snapshots into `Application.persistentDataPath/house-map/`
-and write a simple manifest.
+and write manifests:
+- `manifest.jsonl` (one JSON object per snapshot)
+- `manifest-paths.txt` (human-readable list of absolute paths)
 
 ## What you still must wire in Unity/Meta SDK
 Quest spatial mapping typically depends on Meta’s XR features/settings and permissions.

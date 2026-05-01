@@ -8,6 +8,8 @@ namespace Chorewars.Integration
     ///
     /// Quest 3 support typically comes from Meta XR SDK anchor APIs; this file is intentionally a stub
     /// so the core project can compile without Meta packages.
+    ///
+    /// For real devices, prefer <see cref="MetaXrHomeOriginProvider"/> behind `CHOREWARS_META_XR`.
     /// </summary>
     public class PersistentAnchors : MonoBehaviour, IHomeOriginProvider
     {
