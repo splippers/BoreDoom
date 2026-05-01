@@ -1,0 +1,20 @@
+name: Unity CI (placeholder)
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  info:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Repo scaffold check
+        run: |
+          test -f Packages/manifest.json
+          test -f ProjectSettings/ProjectVersion.txt
+          test -d Assets/Chorewars/Scripts
+          echo "Scaffold present. Add real Unity Builder steps when ready."
+
