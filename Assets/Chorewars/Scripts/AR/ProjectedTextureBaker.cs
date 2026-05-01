@@ -42,8 +42,9 @@ namespace Chorewars.AR
 
             if (_material == null) _material = new Material(projectedShader);
 
-            // Capture a composited frame (Quest will include passthrough in the final image).
-            var tex = ScreenCapture.CaptureScreenshotAsTexture();
+            // Capture a frame by rendering the camera into a texture.
+            // (Avoid ScreenCapture APIs; they are not available in some player/assembly configurations.)
+            var tex = CaptureCameraFrame(captureCamera, 1024, 1024);
             if (tex == null) return false;
 
             // Save the frame so you can pull it later (useful for debugging / future multi-frame blending).
@@ -64,6 +65,29 @@ namespace Chorewars.AR
 
             ApplyMaterialToSpatialMeshes(_material);
             return true;
+        }
+
+        private static Texture2D CaptureCameraFrame(Camera cam, int width, int height)
+        {
+            if (cam == null) return null;
+
+            var prevRt = cam.targetTexture;
+            var prevActive = RenderTexture.active;
+
+            var rt = RenderTexture.GetTemporary(width, height, 24, RenderTextureFormat.ARGB32);
+            cam.targetTexture = rt;
+            cam.Render();
+
+            RenderTexture.active = rt;
+            var tex = new Texture2D(width, height, TextureFormat.RGBA32, mipChain: false, linear: false);
+            tex.ReadPixels(new Rect(0, 0, width, height), 0, 0);
+            tex.Apply(updateMipmaps: false, makeNoLongerReadable: false);
+
+            cam.targetTexture = prevRt;
+            RenderTexture.active = prevActive;
+            RenderTexture.ReleaseTemporary(rt);
+
+            return tex;
         }
 
         private void ApplyMaterialToSpatialMeshes(Material mat)

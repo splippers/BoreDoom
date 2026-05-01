@@ -30,8 +30,14 @@ namespace Chorewars.UI
             // IMGUI doesn't receive VR "mouse" clicks on device.
             // Provide controller navigation: thumbstick left/right selects, A activates, B closes.
             // Also provide hands-only pinch: left pinch cycles, right pinch activates.
-            bool hasControllerInput = TryGetPrimary2DAxis(out var axis) && TryGetPrimaryButtonDown(out bool primaryDown, out bool secondaryDown);
-            bool hasPinchInput = HandPinchInput.TryGetPinchDown(out bool leftPinchDown, out bool rightPinchDown);
+            Vector2 axis = default;
+            bool primaryDown = false;
+            bool secondaryDown = false;
+            bool hasControllerInput = TryGetPrimary2DAxis(out axis) && TryGetPrimaryButtonDown(out primaryDown, out secondaryDown);
+
+            bool leftPinchDown = false;
+            bool rightPinchDown = false;
+            bool hasPinchInput = HandPinchInput.TryGetPinchDown(out leftPinchDown, out rightPinchDown);
 
             float now = Time.unscaledTime;
             if (now >= _nextNavAt)
