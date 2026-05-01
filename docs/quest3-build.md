@@ -15,6 +15,7 @@ In your hoovering scene:
 - Create an empty GameObject `AR`
   - Add `ARSessionManager`
   - Add `SpatialMeshTracker`
+  - (optional) Add `HomeOriginAligner` and set `providerComponent` to an `IHomeOriginProvider` implementation
   - Add `HouseMapRecorder` (optional) and assign its `meshTracker`
 
 - Create a GameObject `HooverMode`
@@ -24,6 +25,21 @@ In your hoovering scene:
     - `coverageMap` (add `CoverageMap` to a GameObject and assign)
     - `spatialMeshTracker` (the tracker on `AR`)
     - `houseMapRecorder` (optional)
+
+## On-device home origin + export buttons (debug UI)
+To avoid needing editor tweaks every run, add a small world-space Canvas and wire buttons to:
+- `HomeOriginDebugUI.SetHomeOriginToCurrent`
+- `HomeOriginDebugUI.ApplyHomeOrigin`
+- `HomeOriginDebugUI.ExportCombinedObj`
+
+`HomeOriginDebugUI` expects references to:
+- `HomeOriginAligner`
+- `SpatialMeshTracker`
+
+## Meta XR persistent anchors
+This repo includes `MetaXrHomeOriginProvider` behind a compile define so it compiles without Meta packages.
+
+When you install Meta XR SDK, define `CHOREWARS_META_XR` in Player Settings to enable that code path.
 
 ## Where exports go
 On device, OBJ snapshots are written to:

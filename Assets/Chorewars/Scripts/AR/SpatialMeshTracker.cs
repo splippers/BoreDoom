@@ -181,19 +181,25 @@ namespace Chorewars.AR
 
                 sb.AppendLine($"o spatialmesh_{kv.Key}");
 
+                Matrix4x4 localToWorld = Matrix4x4.identity;
+                if (_meshGosById.TryGetValue(kv.Key, out var go) && go != null)
+                    localToWorld = go.transform.localToWorldMatrix;
+
                 var verts = mesh.vertices;
                 for (int i = 0; i < verts.Length; i++)
                 {
-                    var v = verts[i];
+                    var v = localToWorld.MultiplyPoint3x4(verts[i]);
                     sb.AppendLine($"v {v.x} {v.y} {v.z}");
                 }
 
                 var normals = mesh.normals;
                 if (normals != null && normals.Length == verts.Length)
                 {
+                    // Transform normals using inverse transpose (ignore translation).
+                    var nMat = localToWorld.inverse.transpose;
                     for (int i = 0; i < normals.Length; i++)
                     {
-                        var n = normals[i];
+                        var n = nMat.MultiplyVector(normals[i]).normalized;
                         sb.AppendLine($"vn {n.x} {n.y} {n.z}");
                     }
                 }
