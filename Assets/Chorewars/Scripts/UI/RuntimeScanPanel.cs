@@ -14,6 +14,7 @@ namespace Chorewars.UI
         [SerializeField] private SpatialMeshTracker meshTracker;
         [SerializeField] private HouseMapRecorder houseMapRecorder;
         [SerializeField] private HomeOriginAligner homeOriginAligner;
+        [SerializeField] private ProjectedTextureBaker textureBaker;
 #if CHOREWARS_META_XR
         [SerializeField] private Chorewars.Integration.MetaXrHomeOriginProvider metaHomeOrigin;
 #endif
@@ -30,6 +31,7 @@ namespace Chorewars.UI
             if (meshTracker == null) meshTracker = FindAnyObjectByType<SpatialMeshTracker>();
             if (houseMapRecorder == null) houseMapRecorder = FindAnyObjectByType<HouseMapRecorder>();
             if (homeOriginAligner == null) homeOriginAligner = FindAnyObjectByType<HomeOriginAligner>();
+            if (textureBaker == null) textureBaker = FindAnyObjectByType<ProjectedTextureBaker>();
 #if CHOREWARS_META_XR
             if (metaHomeOrigin == null) metaHomeOrigin = FindAnyObjectByType<Chorewars.Integration.MetaXrHomeOriginProvider>();
 #endif
@@ -57,7 +59,7 @@ namespace Chorewars.UI
             {
                 if (now >= _nextPinchNavAt && leftPinchDown)
                 {
-                    _pinchSelected = (_pinchSelected + 1) % 4;
+                    _pinchSelected = (_pinchSelected + 1) % 5;
                     _nextPinchNavAt = now + 0.25f;
                 }
 
@@ -172,6 +174,15 @@ namespace Chorewars.UI
             GUI.enabled = meshTracker != null;
             if (GUILayout.Button("Clear meshes")) meshTracker.ClearAllMeshes();
 
+            GUI.enabled = textureBaker != null;
+            if (GUILayout.Button("Bake projected texture frame (screenshot → mesh)"))
+            {
+                if (textureBaker.TryBakeOnce(out var png))
+                    Debug.Log($"[BoreDOOM] Projected texture baked. png={png}");
+                else
+                    Debug.LogWarning("[BoreDOOM] Projected texture bake failed (no camera/mesh?)");
+            }
+
             GUI.enabled = true;
             GUILayout.EndArea();
 
@@ -186,6 +197,7 @@ namespace Chorewars.UI
                 1 => "Export OBJ",
                 2 => "Snapshot",
                 3 => "Clear meshes",
+                4 => "Bake texture",
                 _ => "Start/Stop"
             };
         }
@@ -207,6 +219,10 @@ namespace Chorewars.UI
                     break;
                 case 3:
                     meshTracker?.ClearAllMeshes();
+                    break;
+                case 4:
+                    if (textureBaker != null && textureBaker.TryBakeOnce(out var png))
+                        Debug.Log($"[BoreDOOM] Projected texture baked. png={png}");
                     break;
             }
         }
