@@ -40,6 +40,8 @@ namespace Chorewars.UI
 
             bool scanning = scanSession != null && scanSession.IsScanning;
             GUILayout.Label($"Scanning: {scanning}");
+            if (scanSession != null) GUILayout.Label($"Elapsed: {scanSession.ElapsedSeconds:0.0}s");
+            if (scanSession != null) GUILayout.Label($"Coverage: {scanSession.CoveragePercent:0.0}%");
             if (meshTracker != null) GUILayout.Label($"Meshes: {meshTracker.MeshCount}");
 
             GUILayout.Space(8);
@@ -52,6 +54,9 @@ namespace Chorewars.UI
 
             GUI.enabled = scanSession != null;
             if (GUILayout.Button("Export combined OBJ")) scanSession.ExportCombinedObj();
+
+            GUI.enabled = scanSession != null;
+            if (GUILayout.Button("Take snapshot (house-map)")) scanSession.TakeSnapshot();
 
             GUI.enabled = meshTracker != null;
             if (GUILayout.Button("Clear meshes")) meshTracker.ClearAllMeshes();

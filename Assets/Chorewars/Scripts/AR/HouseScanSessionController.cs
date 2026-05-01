@@ -1,5 +1,4 @@
 using UnityEngine;
-using Chorewars.UI;
 
 namespace Chorewars.AR
 {
@@ -25,6 +24,11 @@ namespace Chorewars.AR
         [SerializeField] private bool autoStart;
 
         public bool IsScanning { get; private set; }
+        public float ElapsedSeconds => IsScanning ? Time.unscaledTime - _startedAt : _lastElapsed;
+        public float CoveragePercent => coverageMap != null ? coverageMap.ComputeCoveragePercent() : 0f;
+
+        private float _startedAt;
+        private float _lastElapsed;
 
         private void Awake()
         {
@@ -48,6 +52,8 @@ namespace Chorewars.AR
             homeOriginAligner?.ApplyIfAvailable();
 
             IsScanning = true;
+            _startedAt = Time.unscaledTime;
+            _lastElapsed = 0f;
             spatialMeshTracker?.ClearAllMeshes();
             spatialMeshTracker?.StartScanning();
             houseMapRecorder?.Begin();
@@ -60,6 +66,7 @@ namespace Chorewars.AR
             if (!IsScanning) return;
 
             IsScanning = false;
+            _lastElapsed = Time.unscaledTime - _startedAt;
             spatialMeshTracker?.StopScanning();
             houseMapRecorder?.End();
 
@@ -68,6 +75,11 @@ namespace Chorewars.AR
             if (pathTracker != null) points = pathTracker.worldPositions.Count;
 
             Debug.Log($"[BoreDOOM] Scan stopped. coverage%={coverage:0.0} pathPoints={points}");
+        }
+
+        public void TakeSnapshot()
+        {
+            houseMapRecorder?.TakeSnapshot();
         }
 
         public void ExportCombinedObj()

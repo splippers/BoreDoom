@@ -30,6 +30,12 @@ In your hoovering scene:
   - Add `RuntimeScanPanel`
   - (optional) assign `scanSession` + `meshTracker` (it can auto-find them)
 
+- Optional but recommended for the demo:
+  - Add a GameObject `PathViz`
+    - Add `PathTracker` to the controller/hand object you want to track
+    - Add a `LineRenderer` (simple material, small width)
+    - Add `PathLineVisualizer` and assign `pathTracker` + `lineRenderer`
+
 - Create a GameObject `HooverMode`
   - Add `HooverModeController`
   - Assign:
