@@ -42,3 +42,9 @@ This repo includes a starter `XRMeshSubsystem`-based mesh capture script: `Spati
 
 - During a session (e.g. Hoovering), it can poll environment meshes (when available) and export a snapshot OBJ to `Application.persistentDataPath`.
 - Notes and next steps are in `docs/spatial-mapping.md`.
+
+## Whole-house reconstruction (contiguous map)
+To build a stable, multi-session 3D recreation of your home (Matterport-ish), you need a **persistent reference frame**.
+
+- This repo stubs `PersistentAnchors` as the integration point for Meta XR persistent anchors.
+- The current prototype focuses on **capturing meshes and exporting snapshots**; anchor-based alignment is the next step to make scans “stick” across sessions.
