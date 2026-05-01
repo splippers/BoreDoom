@@ -3,14 +3,16 @@ using System.IO;
 using System.Reflection;
 using UnityEditor;
 using UnityEditor.XR.Management;
+using UnityEditor.XR.OpenXR.Features;
 using UnityEngine;
 using UnityEngine.XR.Management;
 using UnityEngine.XR.OpenXR;
+using UnityEngine.XR.OpenXR.Features.Interactions;
+using UnityEngine.XR.OpenXR.Features.MetaQuestSupport;
 
 /// <summary>
 /// Creates XR Plug-in Management assets when they are missing from the repo (broken GUID refs).
-/// Fixes: "No XR Manager settings found, manifest entries will not be updated."
-/// Runs once on Editor startup (delayCall).
+/// Enables OpenXR <b>Meta Quest Support</b> + <b>Oculus Touch Controller Profile</b> for Android — required for Quest to present frames (otherwise the HMD can stay black).
 /// </summary>
 [InitializeOnLoad]
 public static class BoreDoomXrManagementBootstrap
@@ -55,42 +57,46 @@ public static class BoreDoomXrManagementBootstrap
                     perBuild.CreateDefaultManagerSettingsForBuildTarget(group);
             }
 
-            bool androidReady = IsAndroidLoaderConfigured(perBuild);
-            if (androidReady)
+            if (!IsAndroidLoaderConfigured(perBuild))
+            {
+                foreach (var group in new[] { BuildTargetGroup.Standalone, BuildTargetGroup.Android })
+                {
+                    var mgr = perBuild.ManagerSettingsForBuildTarget(group);
+                    if (mgr == null)
+                        continue;
+                    while (mgr.loaders.Count > 0)
+                        mgr.TryRemoveLoader(mgr.loaders[0]);
+                    mgr.TryAddLoader(loader);
+                    mgr.automaticLoading = true;
+                    mgr.automaticRunning = true;
+                }
+
+                foreach (var group in new[] { BuildTargetGroup.Standalone, BuildTargetGroup.Android })
+                {
+                    var gs = perBuild.SettingsForBuildTarget(group);
+                    if (gs != null)
+                        gs.InitManagerOnStart = true;
+                }
+
+                EditorUtility.SetDirty(perBuild);
+                AssetDatabase.SaveAssets();
+
+                EditorBuildSettings.RemoveConfigObject(XRGeneralSettings.k_SettingsKey);
+                EditorBuildSettings.AddConfigObject(XRGeneralSettings.k_SettingsKey, perBuild, true);
+            }
+            else
             {
                 EditorBuildSettings.AddConfigObject(XRGeneralSettings.k_SettingsKey, perBuild, true);
-                TryEnsureOpenXrPackageSettings();
-                return;
             }
-
-            foreach (var group in new[] { BuildTargetGroup.Standalone, BuildTargetGroup.Android })
-            {
-                var mgr = perBuild.ManagerSettingsForBuildTarget(group);
-                if (mgr == null)
-                    continue;
-                while (mgr.loaders.Count > 0)
-                    mgr.TryRemoveLoader(mgr.loaders[0]);
-                mgr.TryAddLoader(loader);
-                mgr.automaticLoading = true;
-                mgr.automaticRunning = true;
-            }
-
-            foreach (var group in new[] { BuildTargetGroup.Standalone, BuildTargetGroup.Android })
-            {
-                var gs = perBuild.SettingsForBuildTarget(group);
-                if (gs != null)
-                    gs.InitManagerOnStart = true;
-            }
-
-            EditorUtility.SetDirty(perBuild);
-            AssetDatabase.SaveAssets();
-
-            EditorBuildSettings.RemoveConfigObject(XRGeneralSettings.k_SettingsKey);
-            EditorBuildSettings.AddConfigObject(XRGeneralSettings.k_SettingsKey, perBuild, true);
 
             TryEnsureOpenXrPackageSettings();
+            EnableQuestOpenXrAndroidFeatures();
             AssetDatabase.Refresh();
-            Debug.Log("[BoreDoom] XR Plug-in Management: OpenXR loader registered for Standalone + Android. Rebuild the Android player to refresh the manifest.");
+
+            if (!IsAndroidLoaderConfigured(perBuild))
+                Debug.LogWarning("[BoreDoom] Android XR loader list still empty — check XR Plug-in Management.");
+            else
+                Debug.Log("[BoreDoom] XR Plug-in Management OK. Quest OpenXR features updated — rebuild & install Android APK.");
         }
         catch (Exception e)
         {
@@ -102,6 +108,69 @@ public static class BoreDoomXrManagementBootstrap
     {
         var mgr = perBuild.ManagerSettingsForBuildTarget(BuildTargetGroup.Android);
         return mgr != null && mgr.loaders != null && mgr.loaders.Count > 0;
+    }
+
+    static void EnableQuestOpenXrAndroidFeatures()
+    {
+        OpenXRFeatureSetManager.InitializeFeatureSets();
+
+        foreach (var fs in OpenXRFeatureSetManager.FeatureSetsForBuildTarget(BuildTargetGroup.Android))
+        {
+            if (fs.featureIds == null)
+                continue;
+            foreach (var fid in fs.featureIds)
+            {
+                if (!string.IsNullOrEmpty(fid) &&
+                    fid.IndexOf("metaquest", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    fs.isEnabled = true;
+                    break;
+                }
+            }
+        }
+
+        OpenXRFeatureSetManager.SetFeaturesFromEnabledFeatureSets(BuildTargetGroup.Android);
+
+        var android = OpenXRSettings.GetSettingsForBuildTargetGroup(BuildTargetGroup.Android);
+        if (android == null)
+        {
+            Debug.LogWarning("[BoreDoom] OpenXR Android settings missing — open Project Settings > XR Plug-in Management > OpenXR.");
+            return;
+        }
+
+        bool changed = false;
+
+        var mq = android.GetFeature<MetaQuestFeature>();
+        if (mq != null)
+        {
+            if (!mq.enabled)
+            {
+                mq.enabled = true;
+                changed = true;
+            }
+        }
+        else
+        {
+            Debug.LogWarning(
+                "[BoreDoom] Meta Quest Support feature not found on OpenXR Android settings. In Editor: Project Settings > XR Plug-in Management > OpenXR > Android > Feature Groups, enable Meta Quest Support.");
+        }
+
+        var touch = android.GetFeature<OculusTouchControllerProfile>();
+        if (touch != null && !touch.enabled)
+        {
+            touch.enabled = true;
+            changed = true;
+        }
+
+        if (changed)
+        {
+            EditorUtility.SetDirty(android);
+            var path = AssetDatabase.GetAssetPath(android);
+            if (!string.IsNullOrEmpty(path))
+                AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
+            AssetDatabase.SaveAssets();
+            Debug.Log("[BoreDoom] Enabled Meta Quest Support and/or Oculus Touch Controller Profile for OpenXR (Android).");
+        }
     }
 
     static void EnsureFolders()
@@ -126,7 +195,6 @@ public static class BoreDoomXrManagementBootstrap
         return OpenXrLoaderPath;
     }
 
-    /// <summary>OpenXRPackageSettings is internal; invoke GetOrCreateInstance so OpenXR package settings exist.</summary>
     static void TryEnsureOpenXrPackageSettings()
     {
         const string editorAsm = "Unity.XR.OpenXR.Editor";

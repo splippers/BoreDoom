@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using Unity.XR.CoreUtils;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.XR;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.XR;
@@ -53,6 +55,15 @@ namespace Chorewars.Bootstrap
                 Debug.LogWarning($"{LogPrefix}: No camera after first scene load — creating fallback.");
                 BuildMinimalCamera();
             }
+
+            AttachRuntimeDiagnostics();
+        }
+
+        private static void AttachRuntimeDiagnostics()
+        {
+            var diagGo = new GameObject("BoreDoom Xr Diagnostics");
+            diagGo.AddComponent<XrHeadsetDiagnostics>();
+            Object.DontDestroyOnLoad(diagGo);
         }
 
         private static void BuildXrRig()
@@ -77,6 +88,7 @@ namespace Chorewars.Bootstrap
 
             var cam = camGo.AddComponent<Camera>();
             camGo.AddComponent<AudioListener>();
+            cam.stereoTargetEye = StereoTargetEyeMask.Both;
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = new Color(0.06f, 0.07f, 0.1f, 1f);
             cam.nearClipPlane = 0.01f;
@@ -120,6 +132,7 @@ namespace Chorewars.Bootstrap
 
             var cam = camGo.AddComponent<Camera>();
             camGo.AddComponent<AudioListener>();
+            cam.stereoTargetEye = StereoTargetEyeMask.Both;
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = new Color(0.15f, 0.05f, 0.05f, 1f);
             cam.nearClipPlane = 0.01f;
@@ -127,6 +140,24 @@ namespace Chorewars.Bootstrap
 
             Object.DontDestroyOnLoad(camGo);
             Debug.Log($"{LogPrefix}: Fallback camera created (magenta-tinted clear for diagnosis).");
+        }
+    }
+
+    /// <summary>Logs XR display subsystem once — survives log filters better than static-only init when diagnosing black HMD.</summary>
+    internal sealed class XrHeadsetDiagnostics : MonoBehaviour
+    {
+        private bool _logged;
+
+        private void Update()
+        {
+            if (_logged)
+                return;
+
+            _logged = true;
+            var displays = new List<XRDisplaySubsystem>();
+            SubsystemManager.GetSubsystems(displays);
+            var running = displays.Count > 0 && displays[0].running;
+            Debug.Log($"{QuestXrRigBootstrap.LogPrefix}: XRDisplaySubsystem count={displays.Count}, running={running}");
         }
     }
 }

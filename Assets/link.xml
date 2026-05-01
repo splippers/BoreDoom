@@ -3,4 +3,7 @@
   <assembly fullname="Unity.XR.Management" preserve="all" />
   <assembly fullname="UnityEngine.XRModule" preserve="all" />
   <assembly fullname="Unity.InputSystem" preserve="all" />
+  <assembly fullname="Assembly-CSharp">
+    <namespace fullname="Chorewars.Bootstrap" preserve="all" />
+  </assembly>
 </linker>
