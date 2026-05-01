@@ -36,3 +36,9 @@ The original creator’s goal:
 5. Build for Quest 3
 
 See `CONTRIBUTING.md` and `ROADMAP.md` for how to help.
+
+## Spatial mapping / “Matterport-ish” capture (prototype)
+This repo includes a starter `XRMeshSubsystem`-based mesh capture script: `SpatialMeshTracker`.
+
+- During a session (e.g. Hoovering), it can poll environment meshes (when available) and export a snapshot OBJ to `Application.persistentDataPath`.
+- Notes and next steps are in `docs/spatial-mapping.md`.

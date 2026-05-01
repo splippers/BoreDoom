@@ -14,6 +14,7 @@ namespace Chorewars.Modes
         public Transform trackedTool;
         public PathTracker pathTracker;
         public CoverageMap coverageMap;
+        public SpatialMeshTracker spatialMeshTracker;
 
         private ChoreSession _session;
 
@@ -40,6 +41,8 @@ namespace Chorewars.Modes
                 chore = hooverChore,
                 startTimeUtc = System.DateTime.UtcNow
             };
+
+            spatialMeshTracker?.StartScanning();
         }
 
         public void End()
@@ -51,6 +54,13 @@ namespace Chorewars.Modes
 
             var result = ScoringEngine.Score(_session);
             _ = result;
+
+            spatialMeshTracker?.StopScanning();
+            if (spatialMeshTracker != null)
+            {
+                var exportPath = spatialMeshTracker.ExportCurrentSnapshotAsObj("kitchen-vacuum");
+                Debug.Log($"[BoreDOOM] Spatial mesh OBJ exported to: {exportPath}");
+            }
         }
     }
 }
