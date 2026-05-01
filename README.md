@@ -28,6 +28,10 @@ The original creator’s goal:
 - BoreDoom! Outdoors – Lawn mowing coverage tracking
 - Chorewars Meta – Profiles, scoring, streaks, history
 
+## Related repo
+- **ChoreWars (meta layer)**: `https://github.com/splippers/ChoreWars`
+  - Intended home for profiles, progression, streaks, and cross-mode scoring that can be shared across multiple “BoreDoom!” experiences.
+
 ## Getting started
 1. Clone the repo
 2. Open in Unity (matching the documented version)
