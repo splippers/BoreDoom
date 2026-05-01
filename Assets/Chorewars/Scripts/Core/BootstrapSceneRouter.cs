@@ -1,3 +1,4 @@
+using Chorewars.Bootstrap;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -31,6 +32,8 @@ namespace Chorewars.Core
 
             var target = GetLastModeSceneNameOrDefault();
             if (string.Equals(target, BootstrapSceneName, System.StringComparison.OrdinalIgnoreCase)) target = DefaultModeSceneName;
+
+            Debug.Log($"{QuestXrRigBootstrap.LogPrefix}: routing Bootstrap → {target}.");
 
             if (Application.CanStreamedLevelBeLoaded(target))
                 SceneManager.LoadScene(target);
