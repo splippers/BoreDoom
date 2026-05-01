@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -27,7 +28,9 @@ namespace Chorewars.UI
         }
 
         private GameObject _canvasRoot;
+        private Canvas _canvas;
         private bool _built;
+        private bool _buildStarted;
 
         private static Sprite _pitchStripeSprite;
 
@@ -43,25 +46,82 @@ namespace Chorewars.UI
 
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
-            if (!_built) BuildWorldUi();
+            ScheduleBuild();
         }
 
         private void Start()
         {
-            if (!_built) BuildWorldUi();
+            ScheduleBuild();
+        }
+
+        private void ScheduleBuild()
+        {
+            if (_built || _buildStarted) return;
+            _buildStarted = true;
+            StartCoroutine(CoBuildWorldUi());
+        }
+
+        private IEnumerator CoBuildWorldUi()
+        {
+            // XR setups often have no Camera.main for the first few frames; wait so World Space UI isn't "black".
+            for (var i = 0; i < 180 && GetPrimaryCamera() == null; i++)
+                yield return null;
+
+            BuildWorldUi();
         }
 
         private void LateUpdate()
         {
             if (_canvasRoot == null) return;
 
-            var cam = Camera.main;
+            var cam = GetPrimaryCamera();
             if (cam == null) return;
+
+            if (_canvas != null)
+                _canvas.worldCamera = cam;
 
             var t = _canvasRoot.transform;
             var pos = cam.transform.position + cam.transform.forward * 1.65f + cam.transform.up * 0.08f;
             t.position = pos;
             t.rotation = Quaternion.LookRotation(cam.transform.position - t.position, Vector3.up);
+        }
+
+        private static Camera GetPrimaryCamera()
+        {
+            if (Camera.main != null) return Camera.main;
+
+            try
+            {
+                var tagged = GameObject.FindGameObjectWithTag("MainCamera");
+                if (tagged != null && tagged.TryGetComponent<Camera>(out var tc) && tc.enabled)
+                    return tc;
+            }
+            catch
+            {
+                // Tag missing in project — ignore.
+            }
+
+            var cams = FindObjectsByType<Camera>(FindObjectsInactive.Exclude);
+            if (cams == null || cams.Length == 0) return null;
+
+            Camera best = null;
+            var bestScore = int.MinValue;
+            foreach (var c in cams)
+            {
+                if (c == null || !c.enabled) continue;
+
+                var score = 0;
+                if (c.CompareTag("MainCamera")) score += 1000;
+                if (c.stereoTargetEye == StereoTargetEyeMask.Both) score += 100;
+                score += Mathf.RoundToInt(c.depth * 10f);
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    best = c;
+                }
+            }
+
+            return best;
         }
 
         private void BuildWorldUi()
@@ -74,9 +134,9 @@ namespace Chorewars.UI
             _canvasRoot = new GameObject("ModeQuickSwitchCanvas");
             _canvasRoot.transform.SetParent(transform, false);
 
-            var canvas = _canvasRoot.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.WorldSpace;
-            canvas.worldCamera = Camera.main;
+            _canvas = _canvasRoot.AddComponent<Canvas>();
+            _canvas.renderMode = RenderMode.WorldSpace;
+            _canvas.worldCamera = GetPrimaryCamera();
 
             var rt = _canvasRoot.AddComponent<RectTransform>();
             rt.sizeDelta = new Vector2(1280, 860);
@@ -91,10 +151,7 @@ namespace Chorewars.UI
 
             var pitchBg = CreateUiChild(panel.transform, "PitchStripe", stretch: true);
             var pitchImg = pitchBg.gameObject.AddComponent<Image>();
-            pitchImg.sprite = GetPitchStripeSprite();
-            pitchImg.type = Image.Type.Tiled;
-            pitchImg.color = Color.white;
-            pitchImg.raycastTarget = false;
+            BuildPitchBackground(pitchImg);
 
             AddPitchWhiteLines(panel);
 
@@ -158,6 +215,28 @@ namespace Chorewars.UI
             ApplySwosTextOutline(closeText, 2f);
 
             _canvasRoot.transform.localScale = Vector3.one * 0.00135f;
+
+            pitchBg.transform.SetAsFirstSibling();
+            content.transform.SetAsLastSibling();
+        }
+
+        private static void BuildPitchBackground(Image pitchImg)
+        {
+            pitchImg.raycastTarget = false;
+
+            var sprite = GetPitchStripeSprite();
+            if (sprite != null)
+            {
+                pitchImg.sprite = sprite;
+                pitchImg.type = Image.Type.Tiled;
+                pitchImg.color = Color.white;
+            }
+            else
+            {
+                pitchImg.sprite = null;
+                pitchImg.type = Image.Type.Simple;
+                pitchImg.color = new Color(0.13f, 0.46f, 0.22f, 1f);
+            }
         }
 
         private static Font GetUiFont() =>
@@ -184,8 +263,18 @@ namespace Chorewars.UI
                     tex.SetPixel(x, y, c);
             }
 
-            tex.Apply(updateMipmaps: false, makeNoLongerReadable: true);
-            _pitchStripeSprite = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 100f);
+            // Keep CPU-readable: makeNoLongerReadable breaks some Android / XR builds for runtime sprites.
+            tex.Apply(updateMipmaps: false, makeNoLongerReadable: false);
+
+            try
+            {
+                _pitchStripeSprite = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 100f);
+            }
+            catch
+            {
+                _pitchStripeSprite = null;
+            }
+
             return _pitchStripeSprite;
         }
 
