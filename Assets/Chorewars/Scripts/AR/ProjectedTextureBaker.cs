@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Reflection;
 using UnityEngine;
 
 namespace Chorewars.AR
@@ -52,7 +53,10 @@ namespace Chorewars.AR
             pngPath = Path.Combine(Application.persistentDataPath, $"projected-frame-{ts}.png");
             try
             {
-                File.WriteAllBytes(pngPath, tex.EncodeToPNG());
+                if (TryEncodeToPng(tex, out var bytes) && bytes != null && bytes.Length > 0)
+                    File.WriteAllBytes(pngPath, bytes);
+                else
+                    pngPath = null;
             }
             catch
             {
@@ -88,6 +92,30 @@ namespace Chorewars.AR
             RenderTexture.ReleaseTemporary(rt);
 
             return tex;
+        }
+
+        private static bool TryEncodeToPng(Texture2D tex, out byte[] bytes)
+        {
+            bytes = null;
+            if (tex == null) return false;
+
+            // Avoid a hard dependency on UnityEngine.ImageConversionModule (EncodeToPNG),
+            // which may not be present in some Unity 6 player configurations.
+            try
+            {
+                var t = Type.GetType("UnityEngine.ImageConversion, UnityEngine.ImageConversionModule", throwOnError: false);
+                if (t == null) return false;
+
+                var m = t.GetMethod("EncodeToPNG", BindingFlags.Public | BindingFlags.Static, null, new[] { typeof(Texture2D) }, null);
+                if (m == null) return false;
+
+                bytes = m.Invoke(null, new object[] { tex }) as byte[];
+                return bytes != null;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         private void ApplyMaterialToSpatialMeshes(Material mat)
