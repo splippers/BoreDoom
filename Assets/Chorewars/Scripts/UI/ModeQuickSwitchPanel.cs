@@ -153,7 +153,9 @@ namespace Chorewars.UI
             _canvas.renderMode = RenderMode.WorldSpace;
             _canvas.worldCamera = GetPlayCamera();
 
-            var rt = _canvasRoot.AddComponent<RectTransform>();
+            // Canvas already adds RectTransform — do not AddComponent<RectTransform> again (Android log:
+            // "Can't add component RectTransform ... already added"), which breaks BuildWorldUi.
+            var rt = _canvasRoot.GetComponent<RectTransform>();
             rt.sizeDelta = new Vector2(1280, 860);
 
             var scaler = _canvasRoot.AddComponent<CanvasScaler>();
@@ -491,8 +493,17 @@ namespace Chorewars.UI
             foreach (var m in es.GetComponents<BaseInputModule>())
                 Destroy(m);
 
-            if (!TryAddVrInputModule(es.gameObject))
+            if (!TryAddVrInputModule(es.gameObject) && !TryAddInputSystemUiInputModule(es.gameObject))
                 es.gameObject.AddComponent<StandaloneInputModule>();
+        }
+
+        private static bool TryAddInputSystemUiInputModule(GameObject go)
+        {
+            var t = Type.GetType("UnityEngine.InputSystem.UI.InputSystemUIInputModule, Unity.InputSystem", throwOnError: false);
+            if (t == null) return false;
+            if (go.GetComponent(t) != null) return true;
+            go.AddComponent(t);
+            return true;
         }
 
         private static void TryInstallVrRaycaster(GameObject canvasGo)
