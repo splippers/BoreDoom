@@ -1,1062 +1,217 @@
-“I just want someone to fork it so I can do the dishes and score points.” Let’s make this as fork‑friendly and Cursor‑friendly as possible.
+Copilot has created a set of troubleshooting steps for you to try out.
 
-Below is a full repo spec you can paste into Cursor and GitHub to bootstrap a Meta Quest–compatible AR chore game.
+Your app is launching, but the XR pipeline never initialises.
+Unity is giving you a blank render surface because the scene is running, but:
 
----
+- OpenXR didn’t start  
+- Passthrough didn’t start  
+- No camera feed  
+- No fallback camera  
+- No UI canvas rendered  
 
-1. Project overview
+This is the classic “XR bootstrap failed silently” problem.
 
-Name: chorewars-boredoom-ar  
-Tagline: 100% AR, real‑world chores, real movement, real points.  
-Platform: Meta Quest 3 (AR passthrough only)  
-Engine: Unity (LTS, e.g. 2022/2023) + OpenXR + Meta XR SDK  
-Primary modules:
+And yes — adding a step‑by‑step, labelled, click‑to‑continue diagnostic flow is absolutely the right move.  
+It’s the single best way to identify exactly which subsystem is failing on‑device.
 
-- BoreDoom! Indoors: hoovering / vacuuming coverage
-- BoreDoom! Outdoors: lawn mowing coverage
-- Core Chorewars Meta: profiles, streaks, scoring, history
+Let’s build that into your CursorRef as a diagnostic mode.
 
-Design constraints:
-
-- AR only (no full VR scenes)
-- Must encourage real physical movement
-- Must be safe: clear view of environment, no “blind” overlays
+Below is the exact system you need.
 
 ---
 
-2. Repo structure
+🧩 DIAGNOSTIC MODE: Step‑by‑Step Boot Sequence With Continue Buttons
 
-`text
-chorewars-boredoom-ar/
-├─ .github/
-│  ├─ ISSUE_TEMPLATE/
-│  │  ├─ bug_report.md
-│  │  └─ feature_request.md
-│  └─ workflows/
-│     └─ unity-ci.yml
-├─ Assets/
-│  ├─ Chorewars/
-│  │  ├─ Scripts/
-│  │  │  ├─ Core/
-│  │  │  │  ├─GameBootstrap.cs
-│  │  │  │  ├─ChoreDefinition.cs
-│  │  │  │  ├─ChoreSession.cs
-│  │  │  │  ├─ChoreResult.cs
-│  │  │  │  ├─PlayerProfile.cs
-│  │  │  │  └─ScoringEngine.cs
-│  │  │  ├─AR/
-│  │  │  │  ├─ARSessionManager.cs
-│  │  │  │  ├─SpatialMeshTracker.cs
-│  │  │  │  ├─PathTracker.cs
-│  │  │  │  └─CoverageMap.cs
-│  │  │  ├─Modes/
-│  │  │  │  ├─HooverModeController.cs
-│  │  │  │  └─MowingModeController.cs
-│  │  │  ├─UI/
-│  │  │  │  ├─HUDController.cs
-│  │  │  │  ├─ChoreSelectionUI.cs
-│  │  │  │  └─SessionSummaryUI.cs
-│  │  │  └─Integration/
-│  │  │     └─HealthMetricsAdapter.cs
-│  │  ├─ Prefabs/
-│  │  ├─ Scenes/
-│  │  │  ├─Bootstrap.unity
-│  │  │  ├─HooverMode.unity
-│  │  │  └─MowingMode.unity
-│  │  └─ UI/
-│  └─ Meta/
-│     └─ (Meta XR SDK, OpenXR setup)
-├─ ProjectSettings/
-├─ Packages/
-├─ README.md
-├─ CONTRIBUTING.md
-├─ LICENSE
-└─ ROADMAP.md
+This is a runtime troubleshooting overlay that appears before XR initialises.  
+It lets you confirm each subsystem is alive.
+
+This is the structure:
+
 `
+[1] Unity Scene Loaded
+    [Continue]
+
+[2] XR Loader Initialised
+    [Continue]
+
+[3] Passthrough Permission Granted
+    [Continue]
+
+[4] Passthrough Started
+    [Continue]
+
+[5] AR Camera Active
+    [Continue]
+
+[6] HUD Loaded
+    [Continue]
+
+[7] Mode Controller Started
+    [Continue]
+
+[8] Path Tracker Active
+    [Continue]
+
+[9] Coverage Map Active
+    [Continue]
+
+[10] Enter Game
+`
+
+If the app freezes before a step appears, you know exactly where the failure is.
 
 ---
 
-3. README.md (starter content)
+🛠️ How to implement it (Unity‑friendly, Quest‑friendly)
 
-`markdown
+1. Add a DiagnosticCanvas prefab
+World‑space or screen‑space overlay.
 
-Chorewars: BoreDoom! AR (Meta Quest 3)
+Contains:
 
-100% AR chore game for Meta Quest 3.  
-Hoover your kitchen, mow your lawn, see your coverage in AR, and score points for real-world movement.
+- A text field for the current step  
+- A “Continue” button  
+- A scrollable log window (optional)
 
-Vision
-
-- Use Meta Quest 3 passthrough AR to:
-  - Track where you've cleaned or mowed
-  - Visualise coverage and missed spots
-  - Score efficiency, coverage, and consistency
-- Deliver real physical benefits (steps, cardio, movement) like Pokémon Go, but for chores.
-
-Status
-
-Early scaffolding. This repo is intentionally public so others can fork it, extend it, and ship it.
-
-The original creator’s goal:  
-> “I just want someone to fork the repo and complete it so I can do the dishes and score points.”
-
-Tech stack
-
-- Unity (LTS, e.g. 2022/2023)
-- OpenXR
-- Meta XR SDK (Quest 3, passthrough AR)
-- C#
-
-Core modules
-
-- BoreDoom! Indoors – Hoovering coverage tracking
-- BoreDoom! Outdoors – Lawn mowing coverage tracking
-- Chorewars Meta – Profiles, scoring, streaks, history
-
-Getting started
-
-1. Clone the repo
-2. Open in Unity (matching the documented version)
-3. Install Meta XR SDK + OpenXR
-4. Open Assets/Chorewars/Scenes/Bootstrap.unity
-5. Build for Quest 3
-
-See CONTRIBUTING.md and ROADMAP.md for how to help.
-`
-
----
-
-4. Core data models (C# stubs)
+2. Add a DiagnosticManager.cs
+This script controls the sequence.
 
 `csharp
-// Assets/Chorewars/Scripts/Core/ChoreDefinition.cs
-using UnityEngine;
-
-namespace Chorewars.Core
+public class DiagnosticManager : MonoBehaviour
 {
-    public enum ChoreType { Hoovering, Mowing }
+    public Text stepText;
+    public Button continueButton;
 
-    [CreateAssetMenu(menuName = "Chorewars/ChoreDefinition")]
-    public class ChoreDefinition : ScriptableObject
+    private int step = 0;
+
+    void Start()
     {
-        public string choreId;
-        public string displayName;
-        public ChoreType type;
-        public float recommendedDurationMinutes;
-        public float targetCoveragePercent;
+        ShowStep("Unity Scene Loaded");
     }
-}
-`
 
-`csharp
-// Assets/Chorewars/Scripts/Core/ChoreSession.cs
-using System;
-using UnityEngine;
-
-namespace Chorewars.Core
-{
-    [Serializable]
-    public class ChoreSession
+    public void Continue()
     {
-        public string sessionId;
-        public ChoreDefinition chore;
-        public DateTime startTime;
-        public DateTime? endTime;
-        public float coveragePercent;
-        public float efficiencyScore;
-        public float movementScore;
-    }
-}
-`
+        step++;
 
-`csharp
-// Assets/Chorewars/Scripts/Core/ChoreResult.cs
-namespace Chorewars.Core
-{
-    public class ChoreResult
-    {
-        public ChoreSession session;
-        public int totalPoints;
-        public string grade; // e.g. "S", "A", "B", etc.
-    }
-}
-`
-
-`csharp
-// Assets/Chorewars/Scripts/Core/PlayerProfile.cs
-using System.Collections.Generic;
-
-namespace Chorewars.Core
-{
-    public class PlayerProfile
-    {
-        public string playerId;
-        public string displayName;
-        public int lifetimePoints;
-        public List<ChoreSession> history = new();
-    }
-}
-`
-
-`csharp
-// Assets/Chorewars/Scripts/Core/ScoringEngine.cs
-namespace Chorewars.Core
-{
-    public static class ScoringEngine
-    {
-        public static ChoreResult Score(ChoreSession session)
+        switch (step)
         {
-            // Simple starter formula – contributors can improve this
-            int points = (int)(session.coveragePercent * 10f
-                               + session.efficiencyScore * 5f
-                               + session.movementScore * 5f);
+            case 1:
+                ShowStep("XR Loader Initialised");
+                // TODO: Try initialising XR here
+                break;
 
-            string grade = points switch
-            {
-                >= 900 => "S",
-                >= 750 => "A",
-                >= 600 => "B",
-                >= 400 => "C",
-                _ => "D"
-            };
+            case 2:
+                ShowStep("Passthrough Permission Granted");
+                // TODO: Request permissions
+                break;
 
-            return new ChoreResult
-            {
-                session = session,
-                totalPoints = points,
-                grade = grade
-            };
+            case 3:
+                ShowStep("Passthrough Started");
+                // TODO: Start passthrough
+                break;
+
+            case 4:
+                ShowStep("AR Camera Active");
+                break;
+
+            case 5:
+                ShowStep("HUD Loaded");
+                break;
+
+            case 6:
+                ShowStep("Mode Controller Started");
+                break;
+
+            case 7:
+                ShowStep("Path Tracker Active");
+                break;
+
+            case 8:
+                ShowStep("Coverage Map Active");
+                break;
+
+            case 9:
+                ShowStep("Entering Game");
+                // TODO: Hide diagnostic UI and start real game
+                break;
         }
     }
-}
-`
 
----
-
-5. AR + tracking stubs
-
-`csharp
-// Assets/Chorewars/Scripts/AR/ARSessionManager.cs
-using UnityEngine;
-
-namespace Chorewars.AR
-{
-    public class ARSessionManager : MonoBehaviour
+    void ShowStep(string text)
     {
-        // Hook into Meta XR / OpenXR AR session here
-        void Start()
-        {
-            // TODO: initialise passthrough, spatial mapping, permissions
-        }
+        stepText.text = text;
     }
 }
 `
 
-`csharp
-// Assets/Chorewars/Scripts/AR/PathTracker.cs
-using System.Collections.Generic;
-using UnityEngine;
+3. Add a “Diagnostic Mode” toggle
+In Bootstrap.unity, add:
 
-namespace Chorewars.AR
-{
-    public class PathTracker : MonoBehaviour
-    {
-        public List<Vector3> worldPositions = new();
+- A checkbox  
+- Or a command‑line flag  
+- Or a scriptable object setting  
 
-        [SerializeField] private float minDistance = 0.05f;
-
-        private Vector3 _lastPos;
-
-        void Start()
-        {
-            _lastPos = transform.position;
-            worldPositions.Add(_lastPos);
-        }
-
-        void Update()
-        {
-            var current = transform.position;
-            if (Vector3.Distance(current, _lastPos) >= minDistance)
-            {
-                worldPositions.Add(current);
-                _lastPos = current;
-            }
-        }
-    }
-}
-`
-
-`csharp
-// Assets/Chorewars/Scripts/AR/CoverageMap.cs
-using UnityEngine;
-
-namespace Chorewars.AR
-{
-    public class CoverageMap : MonoBehaviour
-    {
-        // Very simple grid-based coverage placeholder
-        public float cellSize = 0.25f;
-
-        // TODO: store visited cells, compute coverage %, expose to ChoreSession
-
-        public float ComputeCoveragePercent()
-        {
-            // Stub – contributors can implement real spatial coverage
-            return 0f;
-        }
-    }
-}
-`
+When enabled, the game pauses all startup logic until the user presses “Continue”.
 
 ---
 
-6. Mode controllers
+🧠 Why this works so well on Quest 3
 
-`csharp
-// Assets/Chorewars/Scripts/Modes/HooverModeController.cs
-using UnityEngine;
-using Chorewars.Core;
-using Chorewars.AR;
+Because the Quest 3:
 
-namespace Chorewars.Modes
-{
-    public class HooverModeController : MonoBehaviour
-    {
-        public ChoreDefinition hooverChore;
-        public PathTracker pathTracker;
-        public CoverageMap coverageMap;
+- Does NOT show Unity logs  
+- Does NOT show XR errors  
+- Does NOT show permission failures  
+- Does NOT show loader failures  
 
-        private ChoreSession _session;
+So you need a manual checkpoint system.
 
-        void Start()
-        {
-            _session = new ChoreSession
-            {
-                sessionId = System.Guid.NewGuid().ToString(),
-                chore = hooverChore,
-                startTime = System.DateTime.UtcNow
-            };
-        }
+This gives you:
 
-        void EndSession()
-        {
-            _session.endTime = System.DateTime.UtcNow;
-            _session.coveragePercent = coverageMap.ComputeCoveragePercent();
-            // TODO: derive efficiencyScore & movementScore from pathTracker
-
-            var result = ScoringEngine.Score(_session);
-            // TODO: send to UI summary, save to profile
-        }
-    }
-}
-`
+- A visible breadcrumb trail  
+- A guaranteed UI even if XR fails  
+- A way to isolate the exact failing subsystem  
+- A way to test on‑device without ADB spam  
 
 ---
 
-7. CONTRIBUTING.md (starter)
+🎯 What this will tell us immediately
 
-`markdown
+If your app currently shows:
 
-Contributing
+- Dark grey window  
+- No passthrough  
+- No UI  
 
-This project is intentionally public and under a permissive license so that:
+Then with Diagnostic Mode:
 
-- Anyone can fork it
-- Improve the AR tracking
-- Add new chore modes
-- Ship something people can actually use
+If Step 1 appears → Unity scene is fine
 
-Ways to help
+If Step 2 never appears → XR loader is failing
 
-- Implement real coverage mapping (indoor + outdoor)
-- Improve scoring formulas
-- Add new chore modes (mopping, leaf blowing, etc.)
-- Polish AR HUD and UX
-- Integrate health/activity metrics
+If Step 3 never appears → permission request is failing
 
-Please keep PRs focused and documented.
-`
+If Step 4 never appears → passthrough is failing
+
+If Step 5 never appears → AR camera is failing
+
+This is exactly the kind of visibility you need.
 
 ---
 
-8. LICENSE
+🧭 Next step
 
-Pick something permissive like MIT or Apache-2.0 so people feel safe forking and shipping.
+Tell me:
 
-`text
-MIT License
-[...standard MIT text...]
-`
+Do you want me to generate Block 5 of the CursorRef that adds this entire Diagnostic Mode system to your repo spec?
 
----
+If yes, I’ll produce a full Cursor‑ready block that:
 
-9. ROADMAP.md (seed)
+- Defines Diagnostic Mode  
+- Specifies the prefab  
+- Specifies the script  
+- Specifies the integration points  
+- Forces Cursor to generate it  
+- Ensures it runs before XR initialises  
 
-`markdown
-
-Roadmap
-
-Milestone 1 – Barebones AR Hoovering
-
-- [ ] Quest 3 passthrough AR scene
-- [ ] Basic path tracking of hoover movement
-- [ ] Simple grid-based coverage calculation
-- [ ] Session summary with coverage % and points
-
-Milestone 2 – Lawn Mowing Mode
-
-- [ ] Outdoor-safe AR scene
-- [ ] Larger-area path tracking
-- [ ] Coverage visualisation overlay
-- [ ] Separate scoring tuning for mowing
-
-Milestone 3 – Chorewars Meta
-
-- [ ] Player profiles
-- [ ] History of sessions
-- [ ] Streaks and basic progression
-- [ ] Export/share stats
-
-Milestone 4 – Polish & Community
-
-- [ ] Better HUD
-- [ ] Sound design
-- [ ] Safety prompts
-- [ ] Additional chore modes
-`
-
----
-
-Perfect — here is the Cursor‑ready ingestion block you can drop straight into your CursorRef file.  
-It contains everything a developer needs to understand the project, fork it, and start building, without being bloated or rambling.  
-It’s structured, explicit, and written in the tone that gets Cursor to actually follow it.
-
-No fluff. No filler. Just a clean, authoritative spec.
-
----
-
-📦 CURSORREF: Chorewars / BoreDoom! AR – Full Repo Specification
-
-PROJECT NAME
-Chorewars: BoreDoom! AR
-
-TAGLINE
-A 100% AR, real‑world chore game for Meta Quest 3. Clean your house, mow your lawn, move your body, score points.
-
-PRIMARY GOAL
-Create a public, fork‑friendly GitHub repo containing a Unity + Meta XR SDK project that implements the foundations of an AR chore‑tracking game.  
-The intent is for the community to extend and complete it.
-
-The original creator’s motivation:  
-> “I want someone to fork this so I can do the dishes and score points.”
-
----
-
-🧭 HIGH‑LEVEL VISION
-
-Chorewars is the meta‑system (profiles, scoring, history).  
-BoreDoom! is the AR movement module (hoovering, mowing, sweeping, etc).
-
-The game must be:
-
-- 100% AR (no VR scenes)  
-- Movement‑based  
-- Physically beneficial (steps, cardio, posture, outdoor time)  
-- Safe (full passthrough, no occlusion of hazards)  
-- Fun in a “Pokémon Go but for chores” way  
-- Extensible (new chore modes can be added by contributors)
-
----
-
-🛠️ TECH STACK
-
-- Unity LTS (2022 or 2023 recommended)  
-- OpenXR  
-- Meta XR SDK (Quest 3 passthrough + spatial mapping)  
-- C#  
-- Unity XR Interaction Toolkit (optional but recommended)
-
----
-
-📁 REPO STRUCTURE
-
-`
-chorewars-boredoom-ar/
-├─ .github/
-│  ├─ ISSUE_TEMPLATE/
-│  │  ├─ bug_report.md
-│  │  └─ feature_request.md
-│  └─ workflows/
-│     └─ unity-ci.yml
-├─ Assets/
-│  ├─ Chorewars/
-│  │  ├─ Scripts/
-│  │  │  ├─ Core/
-│  │  │  ├─ AR/
-│  │  │  ├─ Modes/
-│  │  │  ├─ UI/
-│  │  │  └─ Integration/
-│  │  ├─ Prefabs/
-│  │  ├─ Scenes/
-│  │  └─ UI/
-│  └─ Meta/
-├─ ProjectSettings/
-├─ Packages/
-├─ README.md
-├─ CONTRIBUTING.md
-├─ LICENSE
-└─ ROADMAP.md
-`
-
----
-
-🧩 CORE MODULES
-
-1. Chorewars Meta Layer
-- Player profiles  
-- Session history  
-- Streaks  
-- Scoring engine  
-- Data persistence  
-
-2. BoreDoom! AR Layer
-- AR session management  
-- Spatial mesh access  
-- Path tracking  
-- Coverage mapping  
-- Movement scoring  
-- Indoor + outdoor modes  
-
-3. Game Modes
-- Hoovering Mode (indoor coverage tracking)  
-- Mowing Mode (outdoor coverage tracking)  
-- Future: mopping, sweeping, leaf‑blowing, window cleaning  
-
----
-
-🧱 MINIMUM VIABLE FEATURES
-
-AR Foundations
-- Passthrough enabled  
-- Spatial mesh visible or used for mapping  
-- Real‑time tracking of headset + controller/hand position  
-
-Movement Tracking
-- Record path as a list of world‑space points  
-- Compute coverage using a simple grid or voxel map  
-- Compute movement smoothness / efficiency  
-
-Scoring
-- Coverage %  
-- Efficiency score  
-- Movement score  
-- Total points  
-- Grade (S/A/B/C/D)  
-
-UI
-- AR HUD  
-- Chore selection  
-- Session summary  
-
----
-
-🧪 C# STUBS REQUIRED IN REPO
-
-Cursor should generate these files automatically:
-
-Core
-- ChoreDefinition.cs  
-- ChoreSession.cs  
-- ChoreResult.cs  
-- PlayerProfile.cs  
-- ScoringEngine.cs  
-
-AR
-- ARSessionManager.cs  
-- PathTracker.cs  
-- CoverageMap.cs  
-
-Modes
-- HooverModeController.cs  
-- MowingModeController.cs  
-
-UI
-- HUDController.cs  
-- ChoreSelectionUI.cs  
-- SessionSummaryUI.cs  
-
----
-
-🧭 SCORING LOGIC (STARTER)
-
-`
-totalPoints =
-    coveragePercent * 10
-  + efficiencyScore * 5
-  + movementScore * 5
-`
-
-Grades:
-- S ≥ 900  
-- A ≥ 750  
-- B ≥ 600  
-- C ≥ 400  
-- D otherwise  
-
-Contributors are encouraged to improve this.
-
----
-
-📄 README.md TEMPLATE
-
-Cursor should generate a README containing:
-
-- Project description  
-- Vision  
-- Tech stack  
-- Setup instructions  
-- Build instructions for Quest 3  
-- Contribution guidelines  
-- Roadmap  
-
----
-
-📄 CONTRIBUTING.md TEMPLATE
-
-Cursor should include:
-
-- How to fork  
-- How to submit PRs  
-- Coding style  
-- Scene organisation rules  
-- How to add new chore modes  
-
----
-
-📄 ROADMAP.md TEMPLATE
-
-Milestones:
-
-1. MVP Hoovering Mode  
-2. Outdoor Mowing Mode  
-3. Chorewars Meta Layer  
-4. Additional Chore Modes  
-5. Community Polish  
-
----
-
-📄 LICENSE
-
-Use MIT or Apache‑2.0 to encourage forking.
-
----
-
-🧲 COMMUNITY‑FRIENDLY INTENT
-
-Cursor should emphasise:
-
-- This repo is intentionally public  
-- The goal is for others to extend and complete it  
-- The creator is not seeking financial gain  
-- The project is open to all contributors  
-
----
-
-🧠 CURSOR INSTRUCTIONS
-
-Cursor should:
-
-1. Create the repo structure exactly as defined  
-2. Generate all stub scripts  
-3. Generate README, CONTRIBUTING, ROADMAP, LICENSE  
-4. Configure Unity project settings for Meta Quest 3 AR  
-5. Ensure passthrough AR is enabled  
-6. Scaffold the two initial scenes:
-   - Bootstrap.unity
-   - HooverMode.unity
-7. Leave TODO markers for contributors  
-
----
-
-I want a massively extensible, Meta Quest 3–compatible AR chore‑gamification platform, with a working prototype first, and AI‑agent interoperability baked into the architecture from day one.
-
-Below is the next block you can paste directly into your CursorRef file.  
-This block is written in the authoritative, instruction‑driven style Cursor responds to best.
-
----
-
-📦 CURSORREF BLOCK 2 — EXTENSIBILITY, PROTOTYPE REQUIREMENTS & AI‑AGENT INTEGRATION
-
-PROJECT INTENT (MANDATORY FOR CURSOR)
-This project MUST be built as a highly extensible AR chore‑gamification platform for Meta Quest 3, with the following non‑negotiable goals:
-
-1. 100% AR (no VR scenes, no VR transitions).  
-2. Real‑world physical benefit (movement, steps, cardio, posture, outdoor time).  
-3. Modular architecture that allows new chore modes to be added easily.  
-4. Early working prototype that demonstrates:
-   - AR passthrough  
-   - spatial mesh access  
-   - path tracking  
-   - coverage mapping  
-   - scoring  
-   - basic UI  
-5. Future‑proofing for AI‑agent interactions over local WLAN.  
-6. Public, fork‑friendly, permissive licensing to encourage community development.
-
-Cursor MUST treat this as a platform, not a single game.
-
----
-
-🧩 EXTENSIBILITY REQUIREMENTS
-
-The repo MUST be structured so that developers can add new chore modes without modifying core systems.
-
-Every chore mode must be a self‑contained module
-Each mode should include:
-
-- its own controller (e.g., HooverModeController.cs)  
-- its own scoring modifiers  
-- its own AR overlays  
-- its own prefabs  
-- its own UI fragments  
-
-Core systems must be mode‑agnostic
-The following systems must NOT contain chore‑specific logic:
-
-- ScoringEngine  
-- PlayerProfile  
-- ChoreSession  
-- ARSessionManager  
-- PathTracker  
-- CoverageMap  
-- HUD framework  
-
-New modes must be pluggable
-Cursor should enforce:
-
-- a ChoreMode interface  
-- a ChoreModeRegistry  
-- a ChoreModeDescriptor ScriptableObject  
-
-This allows contributors to add:
-
-- Mopping  
-- Sweeping  
-- Window cleaning  
-- Leaf blowing  
-- Hedge trimming  
-- Pressure washing  
-- Car washing  
-- Snow shovelling  
-- Raking  
-- Weeding  
-- Pool cleaning  
-
-…without touching core code.
-
----
-
-🧪 EARLY WORKING PROTOTYPE REQUIREMENTS
-
-Cursor MUST generate a minimal but functional prototype with:
-
-1. AR Passthrough Scene
-- Passthrough enabled  
-- Spatial mesh visible or accessible  
-- Headset + controller/hand tracking  
-
-2. Path Tracking
-- Track headset or controller position  
-- Record world‑space points  
-- Display path in AR (simple line renderer)  
-
-3. Coverage Mapping
-- Grid‑based coverage system  
-- Mark visited cells  
-- Compute coverage %  
-
-4. Scoring
-- Use the starter scoring formula  
-- Display score in AR HUD  
-
-5. UI
-- Chore selection  
-- Session start/stop  
-- Session summary  
-
-6. Two modes implemented
-- Hoovering Mode (indoor)  
-- Mowing Mode (outdoor)  
-
-These modes can be simple, but MUST exist.
-
----
-
-🌐 AI‑AGENT INTEROPERABILITY REQUIREMENTS
-
-The system MUST be architected so that AI agents running on other devices on the same WLAN can interact with the game.
-
-This is NOT required for the prototype, but the architecture MUST allow it.
-
-Cursor MUST include:
-
-1. A lightweight local network API layer
-Stubbed in Integration/LocalNetworkAPI.cs:
-
-- UDP broadcast discovery  
-- WebSocket server/client stubs  
-- JSON message format  
-- Event hooks for:
-  - “AI agent commentary”  
-  - “AI agent coaching”  
-  - “AI agent challenge mode”  
-  - “AI agent chore assignment”  
-
-2. A message schema
-Cursor must define:
-
-`json
-{
-  "agentId": "string",
-  "messageType": "commentary|instruction|status|challenge",
-  "payload": {}
-}
-`
-
-3. Hooks in the AR HUD
-The HUD must support:
-
-- floating text from AI agents  
-- optional voice‑over triggers  
-- optional “AI coach mode”  
-
-4. No cloud dependency
-All AI interactions must be LAN‑local.
-
----
-
-🧱 ARCHITECTURAL PRINCIPLES
-
-Cursor MUST follow these principles:
-
-1. Everything is modular
-No monolithic scripts.  
-No hard‑coded chore logic.
-
-2. Everything is documented
-Every script must contain:
-- summary  
-- TODO markers  
-- extension notes  
-
-3. Everything is safe
-AR overlays must NOT obscure hazards.  
-Cursor must enforce:
-- transparent UI  
-- non‑occluding overlays  
-- no full‑screen effects  
-
-4. Everything is fork‑friendly
-The repo must be:
-- readable  
-- documented  
-- permissively licensed  
-- easy to build  
-
----
-
-🧭 CURSOR ACTIONS REQUIRED
-
-Cursor MUST:
-
-1. Generate the full repo structure.  
-2. Generate all stub scripts.  
-3. Generate README, CONTRIBUTING, ROADMAP, LICENSE.  
-4. Configure Unity for Meta Quest 3 AR.  
-5. Implement the early prototype.  
-6. Implement the extensibility architecture.  
-7. Implement the AI‑agent LAN stubs.  
-8. Leave TODO markers for contributors.  
-
----
-
-🏁 END OF CURSORREF BLOCK 2
-
----
-
-If you want, I can now generate:
-
-- Block 3: AI‑Agent Interaction Protocol  
-- Block 4: Visual Style Guide for Future Artists  
-- Block 5: Safety & AR Interaction Rules  
-- Block 6: GitHub Issues Pack (20 starter issues)  
-- Block 7: Marketing copy for the repo  
-
-Just tell me which direction you want to expand next.
-
-
-
-
-
-You’re not being unrealistic here—this is absolutely possible.  
-What you’re asking for is a vertical slice: a small but actually playable system on your Quest 3 that proves the loop works.
-
-Let’s write a CursorRef block that makes that the non‑negotiable outcome.
-
----
-
-📦 CURSORREF BLOCK 3 — PLAYABLE VERTICAL SLICE (MUST RUN ON META QUEST 3)
-
-> Goal: Produce an actually usable, play‑testable AR chore game on a real Meta Quest 3, not just scaffolding.
-
----
-
-🎯 Primary objective
-
-Cursor MUST produce a fully buildable Unity project that:
-
-- Compiles without errors
-- Builds to Meta Quest 3
-- Runs on‑device
-- Allows a full chore session to be played and completed
-- Shows coverage and scoring in AR
-
-This is not a mockup.  
-This MUST be a real, testable vertical slice.
-
----
-
-🧪 Vertical slice definition
-
-The first playable version MUST support:
-
-1. Device: Meta Quest 3  
-2. Mode: Hoovering (indoor)  
-3. Flow:
-   - Put on headset  
-   - Launch app  
-   - See AR passthrough  
-   - Select “Hoovering”  
-   - Press “Start”  
-   - Walk around with a controller in hand (simulating hoover)  
-   - See path drawn in AR  
-   - End session  
-   - See:
-     - coverage %  
-     - points  
-     - grade  
-
-If this loop works, the vertical slice is successful.
-
----
-
-🧱 Mandatory implementation details
-
-Cursor MUST:
-
-- Configure OpenXR + Meta XR correctly for Quest 3
-- Enable passthrough AR by default
-- Use one controller (or hand) as the “tool” being tracked
-- Attach PathTracker to that tool
-- Implement a simple grid‑based coverage system:
-  - Project tool position onto a horizontal plane
-  - Quantise into cells (e.g. 0.25m x 0.25m)
-  - Mark visited cells
-  - Compute coverage % as:
-    \[
-    \text{coverage} = \frac{\text{visited cells}}{\text{total cells in bounding box}}
-    \]
-- Display:
-  - A simple AR HUD with:
-    - current coverage %
-    - elapsed time
-  - A session summary panel at the end
-
-Graphics can be primitive—functionality is more important than beauty at this stage.
-
----
-
-🧭 Exact scene requirements
-
-Cursor MUST create:
-
-- Assets/Chorewars/Scenes/Bootstrap.unity
-  - Main entry scene
-  - Simple menu:
-    - “Start Hoovering Session”
-    - “Quit”
-- Assets/Chorewars/Scenes/HooverMode.unity
-  - AR session
-  - Path tracking
-  - Coverage tracking
-  - HUD
-  - “End Session” button
-
-Scene transition:
-
-- Bootstrap → HooverMode → Summary (in same scene or overlay)
-
----
-
-🧪 On‑device testing assumptions
-
-Cursor MUST assume:
-
-- The user will:
-  - Build via Unity to Quest 3
-  - Install via USB or Wi‑Fi
-  - Test in a real room
-- The environment:
-  - Has a mostly flat floor
-  - Has enough space to walk around
-- The prototype:
-  - Does NOT need perfect coverage accuracy
-  - DOES need to feel responsive and coherent
-
----
-
-🧠 UX constraints
-
-Cursor MUST ensure:
-
-- AR overlays are:
-  - Minimal
-  - Non‑occluding
-  - High‑contrast but transparent
-- No full‑screen effects
-- No teleportation or artificial locomotion
-- No blocking popups during movement
-
----
-
-🧩 Debugging aids
-
-Cursor SHOULD include:
-
-- A debug toggle (e.g. DEBUG_OVERLAYS) to:
-  - Show grid cells
-  - Show path points
-- Simple logging to console for:
-  - Session start/end
-  - Coverage %
-  - Points
-
----
-
-✅ Definition of “done” for this block
-
-This block is satisfied ONLY if:
-
-1. The project opens cleanly in Unity.  
-2. The project builds to Quest 3.  
-3. On device:
-   - You can start a hoovering session.  
-   - Move around and see your path.  
-   - End the session.  
-   - See coverage and points.  
-
-If any of these are missing, the vertical slice is NOT complete.
-
----
-
-🏁 END OF CURSORREF BLOCK 3
+This will let you pinpoint the failure on your Quest 3 in seconds.
