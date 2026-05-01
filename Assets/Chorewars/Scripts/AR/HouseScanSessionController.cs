@@ -34,8 +34,8 @@ namespace Chorewars.AR
         {
             if (spatialMeshTracker == null) spatialMeshTracker = GetComponentInChildren<SpatialMeshTracker>();
             if (houseMapRecorder == null) houseMapRecorder = GetComponentInChildren<HouseMapRecorder>();
-            if (coverageMap == null) coverageMap = FindFirstObjectByType<CoverageMap>();
-            if (pathTracker == null) pathTracker = FindFirstObjectByType<PathTracker>();
+            if (coverageMap == null) coverageMap = FindAnyObjectByType<CoverageMap>();
+            if (pathTracker == null) pathTracker = FindAnyObjectByType<PathTracker>();
         }
 
         private void Start()

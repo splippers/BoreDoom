@@ -60,7 +60,7 @@ namespace Chorewars.AR
         public void RefreshSubsystems()
         {
             _subsystems.Clear();
-            SubsystemManager.GetInstances(_subsystems);
+            SubsystemManager.GetSubsystems(_subsystems);
         }
 
         public void StartScanning()

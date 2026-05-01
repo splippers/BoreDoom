@@ -22,12 +22,12 @@ namespace Chorewars.UI
 
         private void Awake()
         {
-            if (scanSession == null) scanSession = FindFirstObjectByType<HouseScanSessionController>();
-            if (meshTracker == null) meshTracker = FindFirstObjectByType<SpatialMeshTracker>();
-            if (houseMapRecorder == null) houseMapRecorder = FindFirstObjectByType<HouseMapRecorder>();
-            if (homeOriginAligner == null) homeOriginAligner = FindFirstObjectByType<HomeOriginAligner>();
+            if (scanSession == null) scanSession = FindAnyObjectByType<HouseScanSessionController>();
+            if (meshTracker == null) meshTracker = FindAnyObjectByType<SpatialMeshTracker>();
+            if (houseMapRecorder == null) houseMapRecorder = FindAnyObjectByType<HouseMapRecorder>();
+            if (homeOriginAligner == null) homeOriginAligner = FindAnyObjectByType<HomeOriginAligner>();
 #if CHOREWARS_META_XR
-            if (metaHomeOrigin == null) metaHomeOrigin = FindFirstObjectByType<Chorewars.Integration.MetaXrHomeOriginProvider>();
+            if (metaHomeOrigin == null) metaHomeOrigin = FindAnyObjectByType<Chorewars.Integration.MetaXrHomeOriginProvider>();
 #endif
         }
 
