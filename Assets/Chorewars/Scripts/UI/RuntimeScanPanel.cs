@@ -11,6 +11,7 @@ namespace Chorewars.UI
     {
         [SerializeField] private HouseScanSessionController scanSession;
         [SerializeField] private SpatialMeshTracker meshTracker;
+        [SerializeField] private HouseMapRecorder houseMapRecorder;
         [SerializeField] private HomeOriginAligner homeOriginAligner;
 #if CHOREWARS_META_XR
         [SerializeField] private Chorewars.Integration.MetaXrHomeOriginProvider metaHomeOrigin;
@@ -23,6 +24,7 @@ namespace Chorewars.UI
         {
             if (scanSession == null) scanSession = FindFirstObjectByType<HouseScanSessionController>();
             if (meshTracker == null) meshTracker = FindFirstObjectByType<SpatialMeshTracker>();
+            if (houseMapRecorder == null) houseMapRecorder = FindFirstObjectByType<HouseMapRecorder>();
             if (homeOriginAligner == null) homeOriginAligner = FindFirstObjectByType<HomeOriginAligner>();
 #if CHOREWARS_META_XR
             if (metaHomeOrigin == null) metaHomeOrigin = FindFirstObjectByType<Chorewars.Integration.MetaXrHomeOriginProvider>();
@@ -43,7 +45,7 @@ namespace Chorewars.UI
             var old = GUI.matrix;
             GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, Vector3.one * uiScale);
 
-            GUILayout.BeginArea(new Rect(12, 12, 420, 520), GUI.skin.window);
+            GUILayout.BeginArea(new Rect(12, 12, 440, 620), GUI.skin.window);
             GUILayout.Label("BoreDOOM – Scan Panel");
 
             bool scanning = scanSession != null && scanSession.IsScanning;
@@ -77,6 +79,10 @@ namespace Chorewars.UI
             GUI.enabled = homeOriginAligner != null;
             if (GUILayout.Button("Set Home Origin (uses current ScanRoot pose)")) homeOriginAligner.SetHomeOriginToCurrent();
             if (GUILayout.Button("Apply Home Origin (retry localize)")) homeOriginAligner.ApplyIfAvailable();
+#if CHOREWARS_META_XR
+            GUI.enabled = metaHomeOrigin != null;
+            if (GUILayout.Button("Erase Home Origin (persistent storage)")) metaHomeOrigin.ErasePersistentHomeOrigin();
+#endif
             GUI.enabled = true;
 
             GUILayout.Space(8);
@@ -92,6 +98,13 @@ namespace Chorewars.UI
 
             GUI.enabled = scanSession != null;
             if (GUILayout.Button("Take snapshot (house-map)")) scanSession.TakeSnapshot();
+
+            GUI.enabled = houseMapRecorder != null;
+            if (GUILayout.Button("Merge house-map snapshots → one OBJ"))
+            {
+                var path = houseMapRecorder.MergeAllSnapshotsToSingleObj();
+                Debug.Log($"[BoreDOOM] Merged OBJ: {path}");
+            }
 
             GUI.enabled = meshTracker != null;
             if (GUILayout.Button("Clear meshes")) meshTracker.ClearAllMeshes();

@@ -70,6 +70,11 @@ namespace Chorewars.Integration
         }
 
 #if CHOREWARS_META_XR
+        public void ErasePersistentHomeOrigin()
+        {
+            _ = ErasePersistentHomeOriginAsync();
+        }
+
         private async void CreateOrUpdateHomeOriginAsync(Pose pose)
         {
             try
@@ -108,6 +113,43 @@ namespace Chorewars.Integration
                 PlayerPrefs.Save();
 
                 Debug.Log($"[BoreDOOM] Home origin anchor saved. uuid={_uuid:D}");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogException(ex);
+            }
+        }
+
+        private async Task ErasePersistentHomeOriginAsync()
+        {
+            try
+            {
+                if (!TryGetStoredUuid(out var uuid) || uuid == Guid.Empty)
+                {
+                    Debug.LogWarning("[BoreDOOM] No stored home origin UUID to erase.");
+                    return;
+                }
+
+                var uuids = new[] { uuid };
+                var result = await OVRSpatialAnchor.EraseAnchorsAsync(anchors: null, uuids: uuids);
+                if (!result.Success)
+                {
+                    Debug.LogWarning($"[BoreDOOM] Failed to erase home origin anchor: {result.Status}");
+                    return;
+                }
+
+                if (_runtimeAnchor != null)
+                {
+                    Destroy(_runtimeAnchor.gameObject);
+                    _runtimeAnchor = null;
+                }
+
+                _uuid = Guid.Empty;
+                _hasUuid = false;
+                PlayerPrefs.DeleteKey(PlayerPrefsUuidKey);
+                PlayerPrefs.Save();
+
+                Debug.Log("[BoreDOOM] Home origin anchor erased from persistent storage.");
             }
             catch (Exception ex)
             {

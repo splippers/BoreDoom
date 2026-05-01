@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Chorewars.Tools;
 using UnityEngine;
 
 namespace Chorewars.AR
@@ -88,6 +89,20 @@ namespace Chorewars.AR
 
             _entries.Add(entry);
             WriteManifest();
+        }
+
+        public string MergeAllSnapshotsToSingleObj(string filenamePrefix = "merged-house-map")
+        {
+            Directory.CreateDirectory(MapDir);
+            if (_snapshots.Count == 0)
+            {
+                Debug.LogWarning("[BoreDOOM] No snapshots available to merge.");
+                return null;
+            }
+
+            var ts = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss");
+            var outPath = Path.Combine(Application.persistentDataPath, $"{filenamePrefix}-{ts}.obj");
+            return HouseMapExporter.MergeObjFiles(_snapshots, outPath);
         }
 
         private void WriteManifest()
