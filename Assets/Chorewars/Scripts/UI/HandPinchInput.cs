@@ -68,14 +68,23 @@ namespace Chorewars.UI
             _leftHand = null;
             _rightHand = null;
 
-            // FindAnyObjectByType can't target a runtime Type, so use FindObjectsOfTypeAll + filter by name.
-            var behaviours = Resources.FindObjectsOfTypeAll<MonoBehaviour>();
-            for (int i = 0; i < behaviours.Length; i++)
+            // IMPORTANT: Do not scan all MonoBehaviours via Resources.FindObjectsOfTypeAll — it can freeze Quest / ANR.
+            if (_ovrHandType == null) return;
+
+            UnityEngine.Object[] found;
+            try
             {
-                var mb = behaviours[i];
-                if (mb == null) continue;
-                var t = mb.GetType();
-                if (!ReferenceEquals(t, _ovrHandType)) continue;
+                found = UnityEngine.Object.FindObjectsByType(_ovrHandType, FindObjectsInactive.Include);
+            }
+            catch
+            {
+                return;
+            }
+
+            if (found == null) return;
+            for (int i = 0; i < found.Length; i++)
+            {
+                if (found[i] is not MonoBehaviour mb) continue;
 
                 if (TryClassifyHand(mb, out bool isLeft, out bool isRight))
                 {
@@ -84,7 +93,6 @@ namespace Chorewars.UI
                 }
                 else
                 {
-                    // Fallback assignment if HandType isn't available.
                     if (_leftHand == null) _leftHand = mb;
                     else if (_rightHand == null) _rightHand = mb;
                 }

@@ -519,7 +519,7 @@ namespace Chorewars.UI
         {
             var t = Type.GetType("UnityEngine.EventSystems.OVRInputModule, Oculus.VR", throwOnError: false)
                     ?? Type.GetType("UnityEngine.EventSystems.OVRInputModule, Meta.XR", throwOnError: false)
-                    ?? FindTypeInLoadedAssemblies("OVRInputModule");
+                    ?? FindMetaUiTypeByAssemblyLookup("UnityEngine.EventSystems.OVRInputModule");
             if (t == null) return false;
             if (go.GetComponent(t) != null) return true;
             go.AddComponent(t);
@@ -530,28 +530,39 @@ namespace Chorewars.UI
         {
             var t = Type.GetType("UnityEngine.EventSystems.OVRRaycaster, Oculus.VR", throwOnError: false)
                     ?? Type.GetType("UnityEngine.EventSystems.OVRRaycaster, Meta.XR", throwOnError: false)
-                    ?? FindTypeInLoadedAssemblies("OVRRaycaster");
+                    ?? FindMetaUiTypeByAssemblyLookup("UnityEngine.EventSystems.OVRRaycaster");
             if (t == null) return false;
             if (go.GetComponent(t) != null) return true;
             go.AddComponent(t);
             return true;
         }
 
-        private static Type FindTypeInLoadedAssemblies(string simpleName)
+        /// <summary>
+        /// Resolves Meta UI types with cheap <see cref="Assembly.GetType(string)"/> calls only.
+        /// Do NOT use <c>Assembly.GetTypes()</c> on every assembly — that can take seconds on Quest and trigger ANR.
+        /// </summary>
+        private static Type FindMetaUiTypeByAssemblyLookup(string fullName)
         {
             foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
             {
+                string n;
                 try
                 {
-                    foreach (var ty in asm.GetTypes())
-                    {
-                        if (ty.Name == simpleName || ty.FullName == simpleName)
-                            return ty;
-                    }
+                    n = asm.GetName().Name ?? string.Empty;
                 }
-                catch (ReflectionTypeLoadException)
+                catch
                 {
-                    // ignore noisy assemblies
+                    continue;
+                }
+
+                if (n.IndexOf("Oculus", StringComparison.OrdinalIgnoreCase) < 0
+                    && n.IndexOf("Meta", StringComparison.OrdinalIgnoreCase) < 0)
+                    continue;
+
+                try
+                {
+                    var t = asm.GetType(fullName, throwOnError: false, ignoreCase: false);
+                    if (t != null) return t;
                 }
                 catch
                 {
