@@ -118,8 +118,22 @@ namespace Chorewars.AR
             // Ensure manifests are up to date on disk.
             WriteManifest();
 
-            ZipFile.CreateFromDirectory(MapDir, zipPath, System.IO.Compression.CompressionLevel.Fastest, includeBaseDirectory: false);
+            CreateZipFromDirectory(MapDir, zipPath);
             return zipPath;
+        }
+
+        private static void CreateZipFromDirectory(string sourceDirectory, string zipPath)
+        {
+            using var zip = ZipFile.Open(zipPath, ZipArchiveMode.Create);
+            var root = sourceDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+
+            foreach (var file in Directory.EnumerateFiles(sourceDirectory, "*", SearchOption.AllDirectories))
+            {
+                var rel = file.StartsWith(root, StringComparison.Ordinal) ? file.Substring(root.Length) : Path.GetFileName(file);
+                // Normalize zip entry separators.
+                rel = rel.Replace('\\', '/');
+                zip.CreateEntryFromFile(file, rel, System.IO.Compression.CompressionLevel.Fastest);
+            }
         }
 
         private void WriteManifest()
