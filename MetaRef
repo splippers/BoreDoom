@@ -1,82 +1,129 @@
-# MetaRef — onboarding Meta AI / Meta developer tooling for BoreDoom
+Got it — refactoring for Unity 6. Unity 6 changed XR setup, logging, and the OpenXR flow. Here's the updated Cursor task list for your MetaRef doc:
 
-**Purpose:** Bring **Meta-side assistants** (Meta AI, Meta developer resources, or collaborators using Meta’s Unity Quest workflow) up to speed on this repository quickly. Use alongside **`CursorRef`** (Cursor IDE agents) and **`CopilotRef`** (GitHub Copilot + human review).
+BoreDoom! AR – Cursor Task List: Unity 6 Bootstrap + Debug Scaffolding
+Context: Unity 6 LTS, OpenXR, Meta XR SDK, Quest 3 build. On launch, app shows blank grey box. Need aggressive diagnostics + gated startup flow.
 
-**Product:** *BoreDoom* — Chorewars-style **passthrough AR** on **Meta Quest 3** for real-world chore coverage (hoover, mow, etc.). Public, fork-friendly scaffold.
+Issue #1: Fix blank grey box on Quest 3 launch - Unity 6 specific
+Priority: P0 Blocker
+Symptoms: App launches to grey screen. No UI, no scene geometry, no passthrough.
 
----
+Cursor Tasks for Unity 6:
 
-## What Meta should know first
+Scene setup - Unity 6 changes:
+Delete default Main Camera. Use XR > XR Origin (Mobile AR) prefab instead of OVRCameraRig. Unity 6 prefers XR Origin + OpenXR.
+On XR Origin > Camera Offset > Main Camera: Set Clear Flags: Solid Color, Background: RGBA(0,0,0,0) for passthrough. Grey = wrong clear flags.
+Add AR Session GameObject if missing. Unity 6 requires it for OpenXR lifecycle.
+Project Settings > XR Plug-in Management > Android (Unity 6 path):
+Enable OpenXR. In OpenXR tab: Enable Meta Quest Support feature group.
+In OpenXR > Meta Quest Support: Enable Passthrough, Spatial Anchor, Scene. Unity 6 splits these vs old Oculus plugin.
+Render Mode: Multi Pass or Single Pass Instanced. Multi-View not supported on Quest with URP in Unity 6 yet.
+Meta XR All-in-One SDK: Unity 6 uses package com.meta.xr.sdk.all-in-one via scoped registry. Verify installed via Package Manager. Do NOT use deprecated Oculus Integration.
+Permissions - Unity 6 auto-grant changed: Add Project Settings > Android > Other Settings > Custom Main Manifest. Add:
+XML
+<uses-permission android:name="com.oculus.permission.USE_SCENE" />
+<uses-feature android:name="com.oculus.feature.PASSTHROUGH" android:required="true" />
+Crash handler - Unity 6 path: Application.persistentDataPath works, but add:
+C#
+Application.logMessageReceivedThreaded += (msg,type,stack) => File.AppendAllText(Path.Combine(Application.persistentDataPath, "boot.log"), $"{DateTime.Now:HH:mm:ss.fff} [{type}] {msg}\n{stack}\n");
+Acceptance: App launches to visible passthrough or visible Unity UI. No grey box.
 
-| Topic | Fact |
-|--------|------|
-| **Engine** | Unity **6000.4.5f1** (`ProjectSettings/ProjectVersion.txt`). |
-| **XR stack** | **Unity XR Management** + **OpenXR** for Android. **Meta Quest Support** + **Oculus Touch Controller Profile** are required on Android for typical Quest presentation (see Unity OpenXR docs). |
-| **Render pipeline** | **Built-in Render Pipeline** (not URP/HDRP by default). Vulkan on Android. |
-| **Meta XR SDK in repo** | **Not vendored.** Contributors import Meta XR packages / `Assets/Meta/` per Meta’s current installer or UPM guidance. |
-| **Scripting define** | **`CHOREWARS_META_XR`** — add in Player Settings when Meta XR is installed; gates `MetaXrHomeOriginProvider`, `RuntimeScanPanel` Meta paths, and OVR-based UI shortcuts. |
-| **Android package** | Default **`com.DefaultCompany.BoreDoom`** unless changed in Player Settings (matches typical dev logs). |
+Issue #2: Implement “Gated Boot Sequence” with logging + Continue buttons - Unity 6 APIs
+Priority: P0
+Goal: Make every startup step visible. No silent failures.
 
----
+Cursor Tasks:
+Create BootstrapDebugCanvas.cs. Use UnityEngine.UI Toolkit or UGUI. Canvas = World Space, 1.5m scale.
 
-## How this project already aligns with Meta Quest / OpenXR
+Unity 6 specific gate changes:
 
-1. **Editor bootstrap** (`Assets/Editor/BoreDoomXrManagementBootstrap.cs`): Ensures **OpenXR loader** assets, **XRGeneralSettingsPerBuildTarget**, and attempts to enable **Meta Quest Support** + **Oculus Touch Controller Profile** for Android OpenXR settings. Requires opening Unity once after clone so assets register.
+Code
+Gate 1: Unity Boot
+Log: Application.unityVersion, SystemInfo.deviceModel, SystemInfo.operatingSystem
+Pass: Always true
+Continue: Auto-click after 1s
 
-2. **Runtime XR rig** (`Assets/Chorewars/Scripts/Bootstrap/QuestXrRigBootstrap.cs`): Builds **XROrigin** + tracked camera when scenes are empty — avoids a black headset when YAML scenes lack a camera.
+Gate 2: OpenXR Loader - Unity 6 API
+Log: XRGeneralSettings.Instance.Manager.isInitializationComplete
+Log: foreach(var loader in XRGeneralSettings.Instance.Manager.activeLoaders) Log(loader.name)
+Pass: XRGeneralSettings.Instance.Manager.activeLoaders.Count > 0 && loader is OpenXRLoader
+Fail: "OpenXR failed. Check XR Plug-in Management > OpenXR enabled"
+Continue: Enabled only on pass
 
-3. **Meta-specific integration (when SDK present):**
-   - **`MetaXrHomeOriginProvider`** (`Assets/Chorewars/Scripts/Integration/MetaXrHomeOriginProvider.cs`) — **OVRSpatialAnchor**-based home origin; compiled only with **`CHOREWARS_META_XR`**.
-   - **UI** (`ModeQuickSwitchPanel`, `HandPinchInput`, `RuntimeScanPanel`) — **reflection / optional assembly names** (`Oculus.VR`, `Meta.XR`) so the project compiles **without** Meta assemblies; full VR UI rays need Meta XR + scene wiring.
+Gate 3: Meta XR Core SDK Init - Unity 6
+Log: OVRPlugin.version, OVRPlugin.systemDisplayFrequency, OVRPlugin.productName
+Pass: OVRPlugin.GetInitialized() == true
+Fail: "Meta XR SDK not initialized. Check com.meta.xr.sdk.all-in-one installed"
+Continue: Enabled only on pass
 
-4. **Diagnostics** (`Assets/Chorewars/Scripts/Diagnostics/`) — **`MQ3.log`** JSON telemetry on device; **`SubsystemHealth`** includes hooks for passthrough and other subsystems as they are implemented.
+Gate 4: Passthrough Capability - Unity 6 OpenXR
+Log: var passthroughFeature = OpenXRSettings.GetFeature<MetaPassthroughFeature>(); Log($"Passthrough enabled: {passthroughFeature?.enabled}")
+Log: OVRPlugin.eyeTextureArraySupported
+Pass: passthroughFeature != null && passthroughFeature.enabled && OVRPlugin.IsInsightPassthroughSupported()
+Fail: "Passthrough not enabled in OpenXR > Meta Quest Support"
+Continue: Enabled only on pass
 
----
+Gate 5: Permission Check - Unity 6 Android
+Log: Permission.HasUserAuthorizedPermission(Permission.Camera)
+If false: Permission.RequestUserPermission(Permission.Camera)
+Pass: Permission granted
+Continue: Enabled only on pass
 
-## Product constraints (please respect)
+Gate 6: Spatial Data / Scene Permission - Unity 6
+Log: OVRPermissionsRequester.IsPermissionGranted("com.oculus.permission.USE_SCENE")
+Pass: True. If false, call OVRPermissionsRequester.RequestPermission()
+Fail: Show "Enable Scene Understanding in Settings > Apps > BoreDoom > Permissions"
+Continue: Enabled only on pass
 
-- **AR / passthrough first:** Design assumes **see-through** operation for safety; avoid opaque full-screen overlays during movement.  
-- **Fork-friendly:** Avoid hard dependency on unreleased or undocumented Meta-only APIs without fallbacks.  
-- **Small PRs:** Prefer incremental Meta integrations (passthrough layer → mesh → anchors) over monolithic rewrites.
+Gate 7: XR Subsystem Check - Unity 6
+Log: var meshSubsystems = new List<XRMeshSubsystem>(); SubsystemManager.GetSubsystems(meshSubsystems);
+Log: foreach(var s in meshSubsystems) Log($"{s.GetType().Name} running: {s.running}")
+Pass: meshSubsystems.Any(s => s.running)
+Fail: Yellow warning "XRMeshSubsystem not running. Install OpenXR Meta package"
+Continue: Always enabled
 
----
+38 lines hidden
+On final Continue: Destroy debug canvas, SceneManager.LoadScene("MainMenu").
 
-## Suggested focus areas for Meta AI / Meta developer help
+Acceptance: From cold boot, user sees exact failure point. All logs in /sdcard/Android/data/com.splippers.boredoom/files/boot.log
 
-1. **Passthrough on Built-in RP + OpenXR** — minimal composition-layer or Meta-recommended path for Unity 6 / current Meta XR packages.  
-2. **Scene / spatial mesh** — align with existing **`SpatialMeshTracker`**, **`HouseScanSessionController`**, **`ScanRoot`** patterns in `docs/spatial-mapping.md` and `docs/quest3-build.md`.  
-3. **Interaction** — project already anticipates **OVRInputModule / OVRRaycaster** and **`OVRHand`** via reflection; validate against current Meta XR Interaction SDK naming.  
-4. **Performance & lifecycle** — Quest 3 thermal / memory; project uses IL2CPP + stripping — preserve critical types via `Assets/link.xml`.
+Issue #3: Max logging for Unity 6 + Input System
+Priority: P1
+Unity 6 changes: Input System is default. Old Input deprecated.
 
----
+Cursor Tasks:
 
-## Files Meta AI should read
+Create BoreDoomLogger.cs static class. Use System.IO + UnityEngine.Device.Application.persistentDataPath.
+Instrument with Unity 6 Input System:
+C#
+Log("INPUT", $"HMD: {InputSystem.GetDevice<XRHMD>()?.trackingState}");
+Log("INPUT", $"Left: {InputSystem.GetDevice<XrController>()?.position.ReadValue()}");
+Log every 0.5s: Time.frameCount, 1f/Time.deltaTime FPS, SystemInfo.batteryLevel, Profiler.GetTotalAllocatedMemoryLong()/1024/1024 MB
+Add 3-finger tap: Use EnhancedTouch.Touch.onFingerDown in Unity 6. Toggle DebugUI.SetActive().
+Acceptance: boredoom.log shows HMD/controller poses + FPS + memory every 0.5s.
 
-| Path | Why |
-|------|-----|
-| `CursorRef` | Full runtime + XR checklist for this repo. |
-| `CopilotRef` | Engineering snapshot, open questions, telemetry appendix. |
-| `docs/quest3-build.md` | Quest build, `CHOREWARS_META_XR`, scene wiring, **MQ3.log** pull. |
-| `docs/spatial-mapping.md` | Spatial / scan concepts. |
-| `Packages/manifest.json` | Unity package baseline (OpenXR, XRI, etc.). |
+Issue #4: Add “Developer Panel” scene - Unity 6 XR Simulator
+Priority: P2
+Unity 6 change: XR Interaction Toolkit 3.0+ has new Device Simulator.
 
----
+Cursor Tasks:
 
-## Questions we’d like Meta-aligned reasoning on
+New scene DevPanel.unity.
+Add XR > XR Device Simulator prefab. Unity 6 version supports keyboard WASD + mouse look.
+Add XR > XR Environment prefab for mock room mesh.
+Big buttons using UI Toolkit: TEST_HOOVER_COVERAGE, TEST_MESH_EXPORT, DUMP_ANCHORS
+Set DevPanel as Scene 0 in Build Settings. Use #if UNITY_EDITOR to skip boot gates in Editor.
+Acceptance: Hit Play in Unity 6 Editor, navigate with WASD, click buttons, see logs. No Quest needed.
 
-- Smallest **supported** path from **OpenXR + Meta Quest feature** to **Meta Passthrough** on this stack (Built-in RP).  
-- Recommended **package set** (Core vs All-in-One) for **Quest 3 only** in 2026-era Unity 6 projects.  
-- **Anchor / Scene** APIs vs current **`OVRSpatialAnchor`** usage in `MetaXrHomeOriginProvider`.  
-- Validation that **GameActivity** / default Unity entry remain compatible with chosen Meta XR + OpenXR combo.
+Issue #5: Document retrieval path - Unity 6 + Android 14
+Priority: P1
+Unity 6 / Quest 3 OS change: Android 14 scopes storage. Old adb pull path still works but requires MANAGE_EXTERNAL_STORAGE for some cases.
 
----
+Cursor Tasks:
 
-## Cross-reference
-
-- **`CursorRef`** — single source for Cursor agents in-repo.  
-- **`CopilotRef`** — GitHub Copilot + human handoff.  
-- **`MetaRef`** (this file) — Meta ecosystem AI / Meta developer onboarding.
-
----
-
-*End MetaRef — update when Meta XR package strategy or Unity pin changes materially.*
+Update docs/retrieving-exports.md:
+Code
+adb shell pm grant com.splippers.boredoom android.permission.MANAGE_EXTERNAL_STORAGE
+adb pull /sdcard/Android/data/com.splippers.boredoom/files/boot.log ./logs/
+Add in-app DebugMenu.cs with button: Application.OpenURL("content://com.android.externalstorage.documents/document/primary%3AAndroid%2Fdata%2Fcom.splippers.boredoom%2Ffiles") to open Android file browser to log folder.
+Add COPY LOGS TO CLIPBOARD: GUIUtility.systemCopyBuffer = File.ReadAllText(Path.Combine(Application.persistentDataPath, "boot.log"));
+Acceptance: User can pull logs via ADB or tap button to copy, even on Quest 3 v66+.
