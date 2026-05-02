@@ -3,7 +3,7 @@
 This repo is a scaffold intended to be opened in Unity and extended.
 
 ## Unity version
-`ProjectSettings/ProjectVersion.txt` pins `2022.3.24f1` (LTS). Use 2022 LTS unless you have a reason to upgrade.
+`ProjectSettings/ProjectVersion.txt` pins **6000.4.5f1**. Match this editor version when opening the project.
 
 ## Required installs
 - Meta XR SDK (import into `Assets/Meta/`)
@@ -64,4 +64,22 @@ On device, OBJ snapshots are written to:
 You can retrieve these via Android tooling (ADB) once you know the package name.
 
 See also: `docs/retrieving-exports.md`.
+
+## On-device telemetry log (`MQ3.log`)
+
+Runtime diagnostics append **JSON lines** to:
+
+- `{persistentDataPath}/MQ3.log`
+
+When the file exceeds ~10 MB it is rotated to `MQ3.1.log`. Implemented by `Chorewars.Diagnostics.TelemetryLogger`.
+
+Replace the package id if it differs from **Player Settings → Package Name**.
+
+Typical external-storage path (works on many Quest builds):
+
+```bash
+adb pull /sdcard/Android/data/com.DefaultCompany.BoreDoom/files/MQ3.log .
+```
+
+If `adb pull` fails (scoped storage), use **Development Build** and log `Application.persistentDataPath` once, or inspect device files with Android Studio / Quest file browser.
 

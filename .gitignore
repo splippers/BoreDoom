@@ -32,6 +32,9 @@ UnityLogs/
 *.booproj
 *.svd
 
+## Local debug dumps (never commit)
+debug.txt
+
 ## OS
 .DS_Store
 Thumbs.db

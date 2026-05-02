@@ -1,4 +1,5 @@
 using Chorewars.Bootstrap;
+using Chorewars.Diagnostics;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -33,6 +34,7 @@ namespace Chorewars.Core
             var target = GetLastModeSceneNameOrDefault();
             if (string.Equals(target, BootstrapSceneName, System.StringComparison.OrdinalIgnoreCase)) target = DefaultModeSceneName;
 
+            TelemetryLogger.Info("Router", $"routing Bootstrap → {target}.");
             Debug.Log($"{QuestXrRigBootstrap.LogPrefix}: routing Bootstrap → {target}.");
 
             if (Application.CanStreamedLevelBeLoaded(target))

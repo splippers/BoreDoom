@@ -77,33 +77,21 @@ When responding, please:
 
 ---
 
-## Appendix A — Aspirational “Block 5”: maximum telemetry (not in repo)
+## Appendix A — “Block 5” telemetry (partially shipped)
 
-The following was proposed for a **bristling ball of semi-live telemetry** on Quest. **None of this is implemented** unless files appear under `Assets/Chorewars/Scripts/Diagnostics/`. Use it to plan features and PR breakdowns; do not assume it exists in builds.
+**Implemented** (`Assets/Chorewars/Scripts/Diagnostics/`):
 
-**Principles (aspirational):**
+| File | Role |
+|------|------|
+| `TelemetryLogger.cs` | JSON lines to `persistentDataPath/MQ3.log`, ~10 MB rotation → `MQ3.1.log`. |
+| `SubsystemHealth.cs` | Static statuses for XR display, bootstrap rig, passthrough, HUD, modes, trackers (subset updated at runtime today). |
+| `XrHeadsetDiagnostics.cs` | One-shot XR display check; logs + telemetry + `SubsystemHealth.XrDisplay`. |
 
-- Diagnostic Mode with labelled **Continue** steps before full startup.  
-- **Telemetry HUD** in-headset (subsystem status, FPS, memory, last N log lines).  
-- **Structured JSON line logging** to `Application.persistentDataPath` (e.g. `MQ3.log`) with rotation ~10 MB.  
-- **SubsystemHealth** model (enum per subsystem: NotStarted, Initialising, Ok, Failed).  
-- **Fail loudly:** exceptions → logger + HUD + health state.  
+**Wired from:** `QuestXrRigBootstrap`, `BootstrapSceneRouter`. **`docs/quest3-build.md`** documents pulling `MQ3.log` via `adb`.
 
-**Suggested deliverables (when implemented):**
+**Still aspirational:** DiagnosticManager (Continue steps), TelemetryHUD, DiagnosticCanvas prefab, full subsystem instrumentation, fail-loud HUD.
 
-| File (proposed) | Role |
-|-----------------|------|
-| `Assets/Chorewars/Scripts/Diagnostics/DiagnosticManager.cs` | Step gating, default diagnostic mode on until stable. |
-| `Assets/Chorewars/Scripts/Diagnostics/TelemetryHUD.cs` | In-headset status + metrics. |
-| `Assets/Chorewars/Scripts/Diagnostics/TelemetryLogger.cs` | JSON lines, rotation, `Info/Warn/Error` API. |
-| `Assets/Chorewars/Scripts/Diagnostics/SubsystemHealth.cs` | Single source of truth for HUD. |
-| `Assets/Chorewars/Prefabs/DiagnosticCanvas.prefab` | World-space or overlay UI. |
-
-**Step sequence (proposed):** (1) Scene loaded (2) XR loader (3) Passthrough permission (4) Passthrough started (5) AR camera (6) HUD (7) Mode controller (8) Path tracker (9) Coverage map (10) Enter game.
-
-**Definition of done (for a future PR):** On device in diagnostic mode, user sees stepper + HUD + disk log; failures are visible in all three.  
-
-Document pull paths for `MQ3.log` via `adb` in `README` or `docs/` when this ships.
+**Step sequence (future):** (1) Scene loaded … (10) Enter game — see original Block 5 spec if implementing the stepper.
 
 ---
 

@@ -1,5 +1,5 @@
 using System;
-using System.Collections.Generic;
+using Chorewars.Diagnostics;
 using Unity.XR.CoreUtils;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -23,21 +23,31 @@ namespace Chorewars.Bootstrap
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void EnsureXrRigBeforeFirstScene()
         {
+            SubsystemHealth.BootstrapRig = SubsystemStatus.Initialising;
+            TelemetryLogger.Info("Bootstrap", "BeforeSceneLoad (first scene not loaded yet).");
             Debug.Log($"{LogPrefix}: BeforeSceneLoad (first scene not loaded yet).");
 
             try
             {
                 if (Object.FindObjectsByType<XROrigin>(FindObjectsInactive.Include).Length > 0)
                 {
+                    SubsystemHealth.BootstrapRig = SubsystemStatus.Ok;
+                    SubsystemHealth.ArCamera = SubsystemStatus.Ok;
+                    TelemetryLogger.Info("Bootstrap", "XROrigin already present, skipping auto rig.");
                     Debug.Log($"{LogPrefix}: XROrigin already present, skipping auto rig.");
                     return;
                 }
 
                 BuildXrRig();
+                SubsystemHealth.BootstrapRig = SubsystemStatus.Ok;
+                SubsystemHealth.ArCamera = SubsystemStatus.Ok;
+                TelemetryLogger.Info("Bootstrap", "XR rig created.");
                 Debug.Log($"{LogPrefix}: XR rig created.");
             }
             catch (Exception e)
             {
+                SubsystemHealth.BootstrapRig = SubsystemStatus.Failed;
+                TelemetryLogger.Error("Bootstrap", "XR rig failed, using minimal camera only.", e);
                 Debug.LogError($"{LogPrefix}: XR rig failed, using minimal camera only.\n{e}");
                 BuildMinimalCamera();
             }
@@ -48,10 +58,13 @@ namespace Chorewars.Bootstrap
         {
             var scene = SceneManager.GetActiveScene();
             var cameras = Object.FindObjectsByType<Camera>(FindObjectsInactive.Include);
-            Debug.Log($"{LogPrefix}: AfterSceneLoad scene=\"{scene.name}\" cameras={cameras.Length}.");
+            var line = $"AfterSceneLoad scene=\"{scene.name}\" cameras={cameras.Length}.";
+            TelemetryLogger.Info("Bootstrap", line);
+            Debug.Log($"{LogPrefix}: {line}");
 
             if (cameras.Length == 0)
             {
+                TelemetryLogger.Warn("Bootstrap", "No camera after first scene load — creating fallback.");
                 Debug.LogWarning($"{LogPrefix}: No camera after first scene load — creating fallback.");
                 BuildMinimalCamera();
             }
@@ -81,6 +94,7 @@ namespace Chorewars.Bootstrap
             }
             catch (Exception e)
             {
+                TelemetryLogger.Warn("Bootstrap", $"Could not set MainCamera tag: {e.Message}");
                 Debug.LogWarning($"{LogPrefix}: Could not set MainCamera tag ({e.Message}).");
             }
 
@@ -127,6 +141,7 @@ namespace Chorewars.Bootstrap
             }
             catch (Exception e)
             {
+                TelemetryLogger.Warn("Bootstrap", $"Fallback could not set MainCamera tag: {e.Message}");
                 Debug.LogWarning($"{LogPrefix}: Fallback could not set MainCamera tag ({e.Message}).");
             }
 
@@ -139,25 +154,9 @@ namespace Chorewars.Bootstrap
             cam.farClipPlane = 500f;
 
             Object.DontDestroyOnLoad(camGo);
+            TelemetryLogger.Info("Bootstrap", "Fallback camera created (magenta-tinted clear).");
             Debug.Log($"{LogPrefix}: Fallback camera created (magenta-tinted clear for diagnosis).");
-        }
-    }
-
-    /// <summary>Logs XR display subsystem once — survives log filters better than static-only init when diagnosing black HMD.</summary>
-    internal sealed class XrHeadsetDiagnostics : MonoBehaviour
-    {
-        private bool _logged;
-
-        private void Update()
-        {
-            if (_logged)
-                return;
-
-            _logged = true;
-            var displays = new List<XRDisplaySubsystem>();
-            SubsystemManager.GetSubsystems(displays);
-            var running = displays.Count > 0 && displays[0].running;
-            Debug.Log($"{QuestXrRigBootstrap.LogPrefix}: XRDisplaySubsystem count={displays.Count}, running={running}");
+            SubsystemHealth.ArCamera = SubsystemStatus.Ok;
         }
     }
 }
