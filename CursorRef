@@ -1,92 +1,239 @@
-# CursorRef — BoreDoom (Chorewars AR scaffold)
+(A) Copilot technical suggestions
 
-Authoritative context for Cursor agents working in this repo. Keep changes minimal and aligned with existing patterns.
+1. XR pipeline checklist when XRDisplaySubsystem.running == false
 
----
+Run this in order, changing only one thing at a time:
 
-## Project identity
+1. Player Settings → XR Plug‑in Management
+   - Android tab:
+     - OpenXR checked.
+     - No legacy Oculus/Meta XR Provider simultaneously enabled.
+   - Standalone tab: OpenXR also enabled (for editor parity).
 
-- **Name:** BoreDoom / Chorewars-style AR chore prototype  
-- **Intent:** Meta Quest 3, **passthrough AR**, real-world movement, coverage/scoring for chores (hoover, mow, etc.).  
-- **Fork-friendly:** Public scaffold; vertical slice (passthrough + path + coverage + HUD) is the north star.
+2. OpenXR settings
+   - Android feature groups:
+     - Meta Quest Support enabled.
+     - Oculus Touch Controller Profile enabled.
+   - Disable any PC‑only features (SteamVR, Mock HMD, etc.).
 
----
+3. Android Player Settings
+   - Graphics API: Vulkan only (or GLES3 only)—avoid mixed lists while debugging.
+   - Scripting backend: IL2CPP (already set).
+   - Minimum API level: at least what Meta recommends for your Unity version.
+   - Color space: Linear is fine; not a blocker.
 
-## Pinned engine / packages
+4. Android Manifest / permissions
+   - Ensure camera permission is requested if/when you move to passthrough.
+   - For now, a pure VR‑clear scene doesn’t need extra permissions.
 
-- **Unity:** `6000.4.5f1` — see `ProjectSettings/ProjectVersion.txt`  
-- **Scripting:** IL2CPP on Android; **stripEngineCode** enabled — use `Assets/link.xml` when adding critical startup types.  
-- **Key packages** (`Packages/manifest.json`):  
-  `com.unity.inputsystem`, `com.unity.xr.core-utils`, `com.unity.xr.management`, `com.unity.xr.openxr`, `com.unity.xr.interaction.toolkit`, `com.unity.ugui`  
-- **Meta XR SDK:** Not vendored in this repo; integrate under `Assets/Meta/` (or per team policy) when adding passthrough/meshing.
+5. Activity / GameActivity
+   - Confirm you’re using the default Unity activity for OpenXR (no custom AndroidManifest overriding it with an incompatible activity).
+   - If you ever switch to Meta’s GameActivity, do it deliberately and test immediately.
 
----
+6. Scene content
+   - Ensure only one AudioListener (often a hidden second camera kills XR).
+   - Confirm your runtime QuestXrRigBootstrap actually:
+     - Finds/creates an XROrigin.
+     - Has a Camera with an XR‑enabled background type.
+   - Log XRDisplaySubsystem.running and XRInputSubsystem.running every few seconds.
 
-## Scenes & startup flow
-
-| Order | Scene | Notes |
-|-------|--------|--------|
-| 0 | `Assets/Chorewars/Scenes/Bootstrap.unity` | Entry; YAML historically **empty of GameObjects** (nav/lighting shell only). |
-| 1 | `HooverMode.unity` | Routed from Bootstrap via `BootstrapSceneRouter`. |
-| 2 | `MowingMode.unity` | In build list; optional. |
-
-- **`BootstrapSceneRouter`** (`Assets/Chorewars/Scripts/Core/BootstrapSceneRouter.cs`): On `AfterSceneLoad`, if active scene is `Bootstrap`, loads last mode (default `HooverMode`).  
-- **`QuestXrRigBootstrap`** (`Assets/Chorewars/Scripts/Bootstrap/QuestXrRigBootstrap.cs`): `BeforeSceneLoad` builds **XROrigin + tracked Main Camera** (or fallback camera), `DontDestroyOnLoad`, so empty scenes still have something to render. Log prefix: **`BoreDoom/Startup`**.  
-- **`XrHeadsetDiagnostics`** (same file): One-time log of **`XRDisplaySubsystem`** count/running.
-
----
-
-## XR / Quest (critical)
-
-1. **XR Plug-in Management** must reference real assets — `Assets/Editor/BoreDoomXrManagementBootstrap.cs` creates/registers **OpenXR loader** and links **XRGeneralSettingsPerBuildTarget** under `Assets/XR/` when missing.  
-2. **OpenXR on Quest requires Meta Quest Support** (and Unity docs recommend **Oculus Touch Controller Profile**) for **Android** — loader alone is insufficient; features are enabled in the same Editor bootstrap (`EnableQuestOpenXrAndroidFeatures`).  
-3. After pulling, **open Unity once** so bootstrap runs; then rebuild Android so manifest/OpenXR metadata stay consistent.  
-4. **Graphics:** Built-in RP (`GraphicsSettings` — no custom SRP asset). Android targets **Vulkan** for Quest.
-
----
-
-## Implementation status (honest snapshot)
-
-| Area | Status |
-|------|--------|
-| Empty scenes + runtime XR rig workaround | **In repo** |
-| XR Management + OpenXR loader + Meta Quest / Touch toggles (Editor) | **In repo** |
-| Mode UI / panels (world-space UI, pinch, etc.) | **Partial** — see `Assets/Chorewars/Scripts/UI/` |
-| Meta passthrough, spatial mesh, scene capture | **Architecture / stubs** — needs Meta XR + wiring |
-| Vertical slice (passthrough + path + coverage + session summary) | **Not complete** — still goal |
+7. On‑device verification
+   - In a diagnostic build, log:
+     - All XRDisplaySubsystem instances and their running state.
+     - All XRInputSubsystem instances and their running state.
+   - If both are false, the issue is almost always:
+     - Wrong OpenXR feature set, or
+     - Plugin conflict, or
+     - Activity/manifest mismatch.
 
 ---
 
-## Debugging on device
+2. Smallest path from VR‑clear to Meta passthrough
 
-- Unity tag: `adb logcat -s Unity`  
-- Filter (Windows): `findstr /I "BoreDoom Startup XRDisplaySubsystem Exception Error"`  
-- Watch for **`BoreDoom/Startup`** and **`XRDisplaySubsystem … running=True`**. If `running=False` or count `0`, XR subsystems did not start — verify OpenXR Android features in Project Settings and reinstall APK built after Editor bootstrap.
+You don’t need to rewrite the stack—just layer passthrough on top of your existing OpenXR rig:
+
+1. Import Meta XR Core / Passthrough package
+   - Use the Meta XR All‑in‑One or Meta XR Core package via UPM or Meta’s installer.
+   - Keep it as minimal as possible: you mainly need Passthrough and Utilities, not all samples.
+
+2. Enable Meta passthrough feature
+   - In OpenXR → Feature Sets → Android, ensure:
+     - Meta Quest Support is on.
+   - In Meta XR settings, enable Passthrough (or “Scene / Passthrough” depending on version).
+
+3. Add a Passthrough layer component
+   - Use Meta’s OVR Passthrough Layer or equivalent OpenXR composition layer.
+   - Attach it to your XR camera or a dedicated GameObject in the scene.
+   - Set camera clear flags to Solid Color with alpha 0 or Don’t Clear, depending on Meta’s recommended setup for your Unity version.
+
+4. Minimal test
+   - Keep your current rig.
+   - Add only:
+     - Meta XR package.
+     - One Passthrough component.
+   - Build and verify:
+     - You see your room.
+     - Your existing XR rig still works.
+
+Once that works, you can start layering in coverage/path visuals as simple world‑space quads/lines.
 
 ---
 
-## Optional roadmap: diagnostic UI & on-device telemetry
+3. Empty scenes vs authored XR Origin in scenes
 
-**Not implemented in code yet.** When Quest logs are thin, a **stepped Continue** overlay and/or **Telemetry HUD** help localize failures. A detailed aspirational spec (“Block 5”: DiagnosticManager, TelemetryHUD, disk logging, subsystem health) lives in **`CopilotRef`** (appendix) for Copilot/human planning — do not treat it as shipped behavior.
+Technically:
+
+- Runtime bootstrap rig (what you have now):
+  - ✅ Great for fork‑friendly empty scenes.
+  - ✅ Keeps scenes clean and small.
+  - ❌ Harder to debug when XR fails (no obvious camera in scene).
+- Authored XR Origin prefab in scenes:
+  - ✅ Easier to reason about in the Editor.
+  - ✅ Clear visual reference for contributors.
+  - ✅ Less “magic” at runtime.
+  - ❌ Slightly more scene maintenance.
+
+My technical lean:
+
+- Keep the runtime bootstrap for now, but:
+  - Add a single “DebugXRScene” that has a fully authored XR Origin + camera in the scene.
+  - Use that scene as your P0 XR sanity check.
+- Longer term, once XR is stable, consider migrating to authored XR Origin prefabs in each gameplay scene and simplifying the bootstrap.
 
 ---
 
-## Cursor agent rules (project-specific)
+4. Diagnostics: is the step‑by‑step “Continue” UI worth it?
 
-- Prefer **small, focused diffs**; do not refactor unrelated chore/mode code.  
-- Match existing C# style and namespaces (`Chorewars.*`).  
-- Do not commit device logs (`debug.txt` etc.) unless explicitly requested.  
-- Large markdown docs: only when the user asks (this file is the agreed project brain).
+Yes—especially for Quest.
+
+Given:
+
+- You’re already shipping builds to hardware.
+- Logs are going through ADB → Windows → SCP → Eddie → Cursor.
+- XR init is still fragile.
+
+A step‑gated diagnostic UI is a high‑leverage P1:
+
+- It gives you on‑device truth even when ADB is noisy or disconnected.
+- It makes it obvious whether:
+  - XR loader ran.
+  - Passthrough permission was requested.
+  - Passthrough started.
+  - Camera is active.
+- It pairs perfectly with your “bristling ball of telemetry” vision.
+
+I’d treat it as a small, focused PR before heavy feature work.
 
 ---
 
-## Related files
+5. Stripping and [RuntimeInitializeOnLoadMethod]
 
-- `README.md`, `ROADMAP.md`, `docs/quest3-build.md`, `docs/spatial-mapping.md`  
-- `CopilotRef` — handoff for GitHub Copilot + human reasoning  
-- `Assets/link.xml` — IL2CPP link rules including `Chorewars.Bootstrap`  
-- `ProjectSettings/EditorBuildSettings.asset` — scene list + XR config object keys  
+Technically:
+
+- Unity can strip methods marked with [RuntimeInitializeOnLoadMethod] under High managed stripping if:
+  - The containing type/assembly is otherwise unused and not preserved.
+- Your link.xml preserving the Chorewars.Bootstrap namespace is a good move.
+
+Safer pattern:
+
+- In link.xml, preserve:
+  - The specific types that contain RuntimeInitializeOnLoadMethod methods.
+  - Any XR bootstrap types that are only referenced via attributes or reflection.
+
+Example:
+
+`xml
+<linker>
+  <assembly fullname="Assembly-CSharp">
+    <type fullname="Chorewars.Bootstrap.QuestXrRigBootstrap" preserve="all" />
+    <type fullname="Chorewars.Bootstrap.BootstrapSceneRouter" preserve="all" />
+  </assembly>
+</linker>
+`
+
+This is more explicit and robust than preserving entire namespaces if you want to keep stripping aggressive.
 
 ---
 
-*End CursorRef — update when architecture or pinned versions change materially.*
+(B) Items that need human judgment
+
+These are areas where a human (you + any future collaborators) should decide, not just follow Copilot blindly:
+
+1. Meta SDK version & legal
+   - Which Meta XR package version to standardise on.
+   - Whether to commit Meta SDK binaries or require contributors to import them locally.
+   - Any licensing/redistribution constraints for Meta packages in a public repo.
+
+2. Comfort & safety
+   - How aggressive passthrough overlays can be without compromising safety.
+   - Whether to allow any opaque full‑screen effects at all.
+   - How much HUD density is acceptable in a chore context (you’re moving around real obstacles).
+
+3. Long‑term architecture
+   - Whether to keep the runtime XR bootstrap as the canonical pattern, or:
+     - Move to authored XR Origins in scenes once things stabilise.
+   - How much complexity to accept in the AI‑agent LAN protocol vs keeping the core game simple.
+
+4. Telemetry noise vs usability
+   - How much telemetry to show in‑headset for “normal” users later.
+   - When to flip Diagnostic Mode from default ON to opt‑in.
+
+5. Scope vs shipping
+   - How much of the aspirational Block 5 telemetry to implement before you have:
+     - A working passthrough hoovering slice.
+   - Whether to prioritise:
+     - P0 XR init + visible frame, then
+     - P1 passthrough, then
+     - P2 coverage/path,
+     - and only then full telemetry.
+
+---
+
+Assumptions I’m making
+
+- Render pipeline: Built‑in RP (not URP/HDRP).
+- Target device: Meta Quest 3 only (no Quest 1/2 constraints considered).
+- Input: Standard Quest controllers for now (hand tracking later).
+- Build: Android, IL2CPP, Release builds for on‑device testing.
+- Meta XR: Not yet imported; OpenXR is currently the only active XR provider.
+
+If any of these are wrong (e.g. you’ve already imported Meta XR Core), we can tighten the advice.
+
+---
+
+One minimal next experiment (before big changes)
+
+Do just this as your next move:
+
+1. Create a “DebugXRScene”:
+   - New scene with:
+     - A manually placed XROrigin (from XR Interaction Toolkit or your own).
+     - A single Camera configured for XR.
+     - A simple world‑space cube in front of the camera.
+   - Add this scene as Scene 0 in EditorBuildSettings.
+
+2. In that scene only:
+   - Temporarily disable your runtime QuestXrRigBootstrap.
+   - Let the authored XR Origin be the only rig.
+
+3. Build and run on Quest 3.
+   - Log:
+     - All XRDisplaySubsystem instances and running states.
+   - Confirm:
+     - You see anything (even just a cube in VR‑clear).
+     - XRDisplaySubsystem.running == true.
+
+If this scene works:
+
+- Your XR configuration + OpenXR + Meta Quest Support are fundamentally sound.
+- Any remaining issues are in your runtime bootstrap logic, not the platform.
+
+If this scene still shows a dark grey frame:
+
+- The problem is below your code:
+  - OpenXR feature sets,
+  - Meta Quest Support,
+  - Activity/manifest,
+  - or plugin conflicts.
+
+That single experiment will tell us which layer to attack next.
