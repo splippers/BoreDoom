@@ -1,481 +1,92 @@
-Copilot has created a set of troubleshooting steps for you to try out.
+# CursorRef — BoreDoom (Chorewars AR scaffold)
 
-Your app is launching, but the XR pipeline never initialises.
-Unity is giving you a blank render surface because the scene is running, but:
-
-- OpenXR didn’t start  
-- Passthrough didn’t start  
-- No camera feed  
-- No fallback camera  
-- No UI canvas rendered  
-
-This is the classic “XR bootstrap failed silently” problem.
-
-And yes — adding a step‑by‑step, labelled, click‑to‑continue diagnostic flow is absolutely the right move.  
-It’s the single best way to identify exactly which subsystem is failing on‑device.
-
-Let’s build that into your CursorRef as a diagnostic mode.
-
-Below is the exact system you need.
+Authoritative context for Cursor agents working in this repo. Keep changes minimal and aligned with existing patterns.
 
 ---
 
-🧩 DIAGNOSTIC MODE: Step‑by‑Step Boot Sequence With Continue Buttons
+## Project identity
 
-This is a runtime troubleshooting overlay that appears before XR initialises.  
-It lets you confirm each subsystem is alive.
-
-This is the structure:
-
-`
-[1] Unity Scene Loaded
-    [Continue]
-
-[2] XR Loader Initialised
-    [Continue]
-
-[3] Passthrough Permission Granted
-    [Continue]
-
-[4] Passthrough Started
-    [Continue]
-
-[5] AR Camera Active
-    [Continue]
-
-[6] HUD Loaded
-    [Continue]
-
-[7] Mode Controller Started
-    [Continue]
-
-[8] Path Tracker Active
-    [Continue]
-
-[9] Coverage Map Active
-    [Continue]
-
-[10] Enter Game
-`
-
-If the app freezes before a step appears, you know exactly where the failure is.
+- **Name:** BoreDoom / Chorewars-style AR chore prototype  
+- **Intent:** Meta Quest 3, **passthrough AR**, real-world movement, coverage/scoring for chores (hoover, mow, etc.).  
+- **Fork-friendly:** Public scaffold; vertical slice (passthrough + path + coverage + HUD) is the north star.
 
 ---
 
-🛠️ How to implement it (Unity‑friendly, Quest‑friendly)
+## Pinned engine / packages
 
-1. Add a DiagnosticCanvas prefab
-World‑space or screen‑space overlay.
-
-Contains:
-
-- A text field for the current step  
-- A “Continue” button  
-- A scrollable log window (optional)
-
-2. Add a DiagnosticManager.cs
-This script controls the sequence.
-
-`csharp
-public class DiagnosticManager : MonoBehaviour
-{
-    public Text stepText;
-    public Button continueButton;
-
-    private int step = 0;
-
-    void Start()
-    {
-        ShowStep("Unity Scene Loaded");
-    }
-
-    public void Continue()
-    {
-        step++;
-
-        switch (step)
-        {
-            case 1:
-                ShowStep("XR Loader Initialised");
-                // TODO: Try initialising XR here
-                break;
-
-            case 2:
-                ShowStep("Passthrough Permission Granted");
-                // TODO: Request permissions
-                break;
-
-            case 3:
-                ShowStep("Passthrough Started");
-                // TODO: Start passthrough
-                break;
-
-            case 4:
-                ShowStep("AR Camera Active");
-                break;
-
-            case 5:
-                ShowStep("HUD Loaded");
-                break;
-
-            case 6:
-                ShowStep("Mode Controller Started");
-                break;
-
-            case 7:
-                ShowStep("Path Tracker Active");
-                break;
-
-            case 8:
-                ShowStep("Coverage Map Active");
-                break;
-
-            case 9:
-                ShowStep("Entering Game");
-                // TODO: Hide diagnostic UI and start real game
-                break;
-        }
-    }
-
-    void ShowStep(string text)
-    {
-        stepText.text = text;
-    }
-}
-`
-
-3. Add a “Diagnostic Mode” toggle
-In Bootstrap.unity, add:
-
-- A checkbox  
-- Or a command‑line flag  
-- Or a scriptable object setting  
-
-When enabled, the game pauses all startup logic until the user presses “Continue”.
+- **Unity:** `6000.4.5f1` — see `ProjectSettings/ProjectVersion.txt`  
+- **Scripting:** IL2CPP on Android; **stripEngineCode** enabled — use `Assets/link.xml` when adding critical startup types.  
+- **Key packages** (`Packages/manifest.json`):  
+  `com.unity.inputsystem`, `com.unity.xr.core-utils`, `com.unity.xr.management`, `com.unity.xr.openxr`, `com.unity.xr.interaction.toolkit`, `com.unity.ugui`  
+- **Meta XR SDK:** Not vendored in this repo; integrate under `Assets/Meta/` (or per team policy) when adding passthrough/meshing.
 
 ---
 
-🧠 Why this works so well on Quest 3
+## Scenes & startup flow
 
-Because the Quest 3:
+| Order | Scene | Notes |
+|-------|--------|--------|
+| 0 | `Assets/Chorewars/Scenes/Bootstrap.unity` | Entry; YAML historically **empty of GameObjects** (nav/lighting shell only). |
+| 1 | `HooverMode.unity` | Routed from Bootstrap via `BootstrapSceneRouter`. |
+| 2 | `MowingMode.unity` | In build list; optional. |
 
-- Does NOT show Unity logs  
-- Does NOT show XR errors  
-- Does NOT show permission failures  
-- Does NOT show loader failures  
-
-So you need a manual checkpoint system.
-
-This gives you:
-
-- A visible breadcrumb trail  
-- A guaranteed UI even if XR fails  
-- A way to isolate the exact failing subsystem  
-- A way to test on‑device without ADB spam  
+- **`BootstrapSceneRouter`** (`Assets/Chorewars/Scripts/Core/BootstrapSceneRouter.cs`): On `AfterSceneLoad`, if active scene is `Bootstrap`, loads last mode (default `HooverMode`).  
+- **`QuestXrRigBootstrap`** (`Assets/Chorewars/Scripts/Bootstrap/QuestXrRigBootstrap.cs`): `BeforeSceneLoad` builds **XROrigin + tracked Main Camera** (or fallback camera), `DontDestroyOnLoad`, so empty scenes still have something to render. Log prefix: **`BoreDoom/Startup`**.  
+- **`XrHeadsetDiagnostics`** (same file): One-time log of **`XRDisplaySubsystem`** count/running.
 
 ---
 
-🎯 What this will tell us immediately
+## XR / Quest (critical)
 
-If your app currently shows:
-
-- Dark grey window  
-- No passthrough  
-- No UI  
-
-Then with Diagnostic Mode:
-
-If Step 1 appears → Unity scene is fine
-
-If Step 2 never appears → XR loader is failing
-
-If Step 3 never appears → permission request is failing
-
-If Step 4 never appears → passthrough is failing
-
-If Step 5 never appears → AR camera is failing
-
-This is exactly the kind of visibility you need.
+1. **XR Plug-in Management** must reference real assets — `Assets/Editor/BoreDoomXrManagementBootstrap.cs` creates/registers **OpenXR loader** and links **XRGeneralSettingsPerBuildTarget** under `Assets/XR/` when missing.  
+2. **OpenXR on Quest requires Meta Quest Support** (and Unity docs recommend **Oculus Touch Controller Profile**) for **Android** — loader alone is insufficient; features are enabled in the same Editor bootstrap (`EnableQuestOpenXrAndroidFeatures`).  
+3. After pulling, **open Unity once** so bootstrap runs; then rebuild Android so manifest/OpenXR metadata stay consistent.  
+4. **Graphics:** Built-in RP (`GraphicsSettings` — no custom SRP asset). Android targets **Vulkan** for Quest.
 
 ---
 
-🧭 Next step
+## Implementation status (honest snapshot)
 
-Tell me:
-
-Do you want me to generate Block 5 of the CursorRef that adds this entire Diagnostic Mode system to your repo spec?
-
-If yes, I’ll produce a full Cursor‑ready block that:
-
-- Defines Diagnostic Mode  
-- Specifies the prefab  
-- Specifies the script  
-- Specifies the integration points  
-- Forces Cursor to generate it  
-- Ensures it runs before XR initialises  
-
-This will let you pinpoint the failure on your Quest 3 in seconds.
-
-You picked the only sane option for where you are right now: C — maximum telemetry.  
-So let’s make BoreDoom exactly what you said it should be:
-
-> “A bristling ball of semi‑live telemetry.”
-
-Here’s CursorRef Block 5 you can bolt straight into your ref file.
+| Area | Status |
+|------|--------|
+| Empty scenes + runtime XR rig workaround | **In repo** |
+| XR Management + OpenXR loader + Meta Quest / Touch toggles (Editor) | **In repo** |
+| Mode UI / panels (world-space UI, pinch, etc.) | **Partial** — see `Assets/Chorewars/Scripts/UI/` |
+| Meta passthrough, spatial mesh, scene capture | **Architecture / stubs** — needs Meta XR + wiring |
+| Vertical slice (passthrough + path + coverage + session summary) | **Not complete** — still goal |
 
 ---
 
-📦 CURSORREF BLOCK 5 — MAXIMUM TELEMETRY & DIAGNOSTIC MODE
+## Debugging on device
 
-> Goal: Until a stable prototype exists, every BoreDoom Meta Quest 3 build MUST behave like a “bristling ball of semi‑live telemetry”: highly verbose, self‑diagnosing, and impossible to silently fail.
-
----
-
-🎯 Core principles
-
-Cursor MUST implement:
-
-1. Diagnostic Mode that gates startup with labelled “Continue” steps.  
-2. On‑device Telemetry HUD visible in the headset.  
-3. Structured Logging to Disk on the Quest.  
-4. Log Rotation (MQ3.log → MQ3.1.log, etc.).  
-5. Clear Subsystem Health Model (XR, Passthrough, HUD, Modes, etc.).  
-6. Minimal friction for ADB / wireless log capture.
-
-This is not optional.  
-Until explicitly disabled, Diagnostic Mode + Telemetry HUD MUST be enabled in all builds.
+- Unity tag: `adb logcat -s Unity`  
+- Filter (Windows): `findstr /I "BoreDoom Startup XRDisplaySubsystem Exception Error"`  
+- Watch for **`BoreDoom/Startup`** and **`XRDisplaySubsystem … running=True`**. If `running=False` or count `0`, XR subsystems did not start — verify OpenXR Android features in Project Settings and reinstall APK built after Editor bootstrap.
 
 ---
 
-🧩 1. Diagnostic Mode (step‑by‑step boot sequence)
+## Optional roadmap: diagnostic UI & on-device telemetry
 
-Cursor MUST create:
-
-- Assets/Chorewars/Scripts/Diagnostics/DiagnosticManager.cs  
-- Assets/Chorewars/Prefabs/DiagnosticCanvas.prefab
-
-Diagnostic flow:
-
-1. Step 1: Unity Scene Loaded  
-2. Step 2: XR Loader Initialised  
-3. Step 3: Passthrough Permission Granted  
-4. Step 4: Passthrough Started  
-5. Step 5: AR Camera Active  
-6. Step 6: HUD Loaded  
-7. Step 7: Mode Controller Started  
-8. Step 8: Path Tracker Active  
-9. Step 9: Coverage Map Active  
-10. Step 10: Enter Game
-
-Each step:
-
-- Shows a label: Current step: <text>  
-- Has a “Continue” button  
-- Logs a structured event via the logging system  
-
-If the app stalls before a step appears, that subsystem is failing.
-
-DiagnosticManager requirements:
-
-- Runs BEFORE XR initialisation.  
-- Has a bool diagnosticModeEnabled flag (default: true).  
-- When disabled, startup proceeds automatically without step gating.
+**Not implemented in code yet.** When Quest logs are thin, a **stepped Continue** overlay and/or **Telemetry HUD** help localize failures. A detailed aspirational spec (“Block 5”: DiagnosticManager, TelemetryHUD, disk logging, subsystem health) lives in **`CopilotRef`** (appendix) for Copilot/human planning — do not treat it as shipped behavior.
 
 ---
 
-🧩 2. Telemetry HUD (semi‑live in‑headset info)
+## Cursor agent rules (project-specific)
 
-Cursor MUST create:
-
-- Assets/Chorewars/Scripts/Diagnostics/TelemetryHUD.cs  
-- Integrate into DiagnosticCanvas OR a separate HUD canvas.
-
-TelemetryHUD MUST display:
-
-- Subsystem status:
-  - XR: Not started / Initialising / OK / Failed  
-  - Passthrough: Not requested / Requested / OK / Failed  
-  - AR Camera: Inactive / Active  
-  - HUD: Inactive / Active  
-  - Mode Controller: Inactive / Active  
-  - PathTracker: Inactive / Active  
-  - CoverageMap: Inactive / Active  
-
-- Runtime metrics:
-  - FPS (approximate)  
-  - Frame time (ms)  
-  - Allocated memory (MB)  
-  - GC count (if available)  
-
-- Last N log lines (e.g. 10–20):
-  - Timestamp  
-  - Subsystem  
-  - Severity  
-  - Message  
-
-HUD MUST be:
-
-- Non‑occluding (small, corner‑anchored, semi‑transparent).  
-- Always visible in Diagnostic Mode.  
-- Hideable later when prototype stabilises.
+- Prefer **small, focused diffs**; do not refactor unrelated chore/mode code.  
+- Match existing C# style and namespaces (`Chorewars.*`).  
+- Do not commit device logs (`debug.txt` etc.) unless explicitly requested.  
+- Large markdown docs: only when the user asks (this file is the agreed project brain).
 
 ---
 
-🧩 3. Structured logging to disk (on Quest)
+## Related files
 
-Cursor MUST implement:
-
-- Assets/Chorewars/Scripts/Diagnostics/TelemetryLogger.cs
-
-Requirements:
-
-- Writes logs to a file named MQ3.log in Application.persistentDataPath.  
-- Each log entry is a single JSON line:
-
-`json
-{"ts":"2026-05-02T07:22:10Z","sub":"XR","sev":"INFO","msg":"OpenXR loader initialised"}
-`
-
-- Expose static methods:
-
-`csharp
-TelemetryLogger.Info(string subsystem, string message);
-TelemetryLogger.Warn(string subsystem, string message);
-TelemetryLogger.Error(string subsystem, string message, Exception ex = null);
-`
-
-- All major subsystems MUST use this logger:
-  - XR initialisation  
-  - Passthrough permission  
-  - Passthrough start  
-  - AR camera setup  
-  - HUD init  
-  - Mode controllers  
-  - PathTracker  
-  - CoverageMap  
-  - AI network layer  
+- `README.md`, `ROADMAP.md`, `docs/quest3-build.md`, `docs/spatial-mapping.md`  
+- `CopilotRef` — handoff for GitHub Copilot + human reasoning  
+- `Assets/link.xml` — IL2CPP link rules including `Chorewars.Bootstrap`  
+- `ProjectSettings/EditorBuildSettings.asset` — scene list + XR config object keys  
 
 ---
 
-🧩 4. Log rotation (MQ3.log → MQ3.1.log, etc.)
-
-TelemetryLogger MUST:
-
-- Check file size before each write.  
-- If MQ3.log > 10 MB:
-  - Move MQ3.log → MQ3.1.log (or increment index).  
-  - Start a new MQ3.log.  
-
-Rotation can be simple (e.g. keep last 3–5 files).
-
----
-
-🧩 5. Subsystem health model
-
-Cursor MUST create:
-
-- Assets/Chorewars/Scripts/Diagnostics/SubsystemHealth.cs
-
-`csharp
-public enum SubsystemStatus { NotStarted, Initialising, Ok, Failed }
-
-public class SubsystemHealth
-{
-    public SubsystemStatus xr;
-    public SubsystemStatus passthrough;
-    public SubsystemStatus arCamera;
-    public SubsystemStatus hud;
-    public SubsystemStatus modeController;
-    public SubsystemStatus pathTracker;
-    public SubsystemStatus coverageMap;
-}
-`
-
-- TelemetryHUD MUST read from this model.  
-- Each subsystem MUST update its own status.
-
-Example:
-
-- XR loader starts → xr = Initialising  
-- XR loader success → xr = Ok  
-- XR loader failure → xr = Failed + log error  
-
----
-
-🧩 6. Integration with your external workflow (Eddie + ADB)
-
-Cursor MUST document (in README or DIAGNOSTICS.md):
-
-- That logs are written to Application.persistentDataPath as MQ3.log, MQ3.1.log, etc.  
-- That they can be pulled via ADB:
-
-`bash
-adb shell ls "$(adb shell echo \$EXTERNAL_STORAGE)/Android/data"
-
-or use Application.persistentDataPath path from logs
-`
-
-- That they can be streamed via:
-
-`bash
-adb logcat | grep "Chorewars"
-`
-
-- That wireless ADB is supported:
-
-`bash
-adb connect <quest-ip>:5555
-adb logcat >> MQ3.log
-`
-
-This aligns with your Eddie + SCP + Cursor agent workflow.
-
----
-
-🧩 7. Everything must fail loudly
-
-Cursor MUST ensure:
-
-- No silent failures.  
-- Every exception is:
-  - Logged via TelemetryLogger  
-  - Reflected in SubsystemHealth  
-  - Visible in TelemetryHUD (at least as a red “FAILED” status)  
-
-If XR fails, you should see:
-
-- Diagnostic step stuck at “XR Loader Initialised”  
-- TelemetryHUD: XR: Failed  
-- Logs: XR error with message  
-
----
-
-✅ Definition of “done” for Block 5
-
-This block is satisfied ONLY if:
-
-1. The project contains:
-   - DiagnosticManager.cs  
-   - TelemetryHUD.cs  
-   - TelemetryLogger.cs  
-   - SubsystemHealth.cs  
-   - DiagnosticCanvas.prefab  
-2. On device, in Diagnostic Mode:
-   - You see a stepper with “Continue” buttons.  
-   - You see subsystem statuses.  
-   - You see FPS/memory.  
-   - You see recent log lines.  
-3. The app writes structured logs to MQ3.log and rotates at ~10 MB.  
-4. If XR or passthrough fails, it is visible in:
-   - The stepper  
-   - The HUD  
-   - The logs  
-
----
-
-🏁 END OF CURSORREF BLOCK 5
-
-If you want, next we can:
-
-- Define Block 6: Quest 3 build & sideload instructions (for README), or  
-- Block 6: GitHub Issues pack so other devs can immediately grab “Implement proper coverage map”, “Improve TelemetryHUD”, etc.
+*End CursorRef — update when architecture or pinned versions change materially.*

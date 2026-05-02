@@ -1,0 +1,110 @@
+# CopilotRef — handoff for GitHub Copilot (+ human review)
+
+**Purpose:** Upload this file (or paste sections) into Copilot Chat so Copilot and a human can reason together about **current repo state**, **risks**, and **next steps**. This is not a product spec; it is an engineering snapshot.
+
+**Repo:** BoreDoom / Chorewars AR scaffold for Meta Quest 3  
+**Unity:** 6000.4.5f1 (`ProjectSettings/ProjectVersion.txt`)  
+**Platform focus:** Android / Quest, OpenXR, IL2CPP  
+
+---
+
+## What this repo is
+
+- Unity **prototype** for an AR chore game (hoover/mow coverage, movement, scoring).  
+- **Meta XR SDK** is **not** committed; OpenXR + XR Management are in `Packages/manifest.json`.  
+- Scenes under `Assets/Chorewars/Scenes/` were saved **without cameras/rigs** in YAML; runtime bootstraps add an **XROrigin + camera** so something can render.  
+
+---
+
+## What was fixed recently (context for reasoning)
+
+1. **XR Management assets missing** — Editor script `Assets/Editor/BoreDoomXrManagementBootstrap.cs` creates `Assets/XR/` loader/settings and registers OpenXR for Standalone + Android.  
+2. **Quest black / blank HMD** — OpenXR on Android needs **Meta Quest Support** and **Oculus Touch Controller Profile** (Unity documentation); the Editor bootstrap attempts to enable these via `OpenXRFeatureSetManager` + `OpenXRSettings.GetFeature<>`.  
+3. **IL2CPP** — `Assets/link.xml` preserves XR assemblies and **`Chorewars.Bootstrap`** namespace so startup hooks are less likely stripped.  
+4. **Diagnostics** — `QuestXrRigBootstrap` logs `BoreDoom/Startup`; `XrHeadsetDiagnostics` logs `XRDisplaySubsystem` once.  
+
+---
+
+## Files Copilot should treat as source of truth
+
+| Topic | Path |
+|--------|------|
+| Runtime XR rig + logs | `Assets/Chorewars/Scripts/Bootstrap/QuestXrRigBootstrap.cs` |
+| Scene routing | `Assets/Chorewars/Scripts/Core/BootstrapSceneRouter.cs` |
+| XR asset bootstrap (Editor only) | `Assets/Editor/BoreDoomXrManagementBootstrap.cs` |
+| Build scenes | `ProjectSettings/EditorBuildSettings.asset` |
+| Packages | `Packages/manifest.json` |
+| Link / stripping | `Assets/link.xml` |
+
+---
+
+## Open questions (for Copilot + human)
+
+Please discuss **tradeoffs and failure modes**, not only code edits:
+
+1. **XR pipeline:** If `XRDisplaySubsystem.running` stays false on Quest after Meta Quest Support is enabled, what ordered checklist (manifest, permissions, feature flags, duplicate AudioListener, GameActivity vs Activity) would you use?  
+2. **Passthrough AR vs VR-clear:** The product vision is **passthrough AR**. This repo still uses a **solid-color clear** camera as a minimal rig. What is the smallest path to **Meta passthrough** (package deps, OVR/XR composition layers, render mode) without rewriting the whole stack?  
+3. **Empty scenes:** Is it better long-term to **author a real XR Origin prefab in scenes** and delete duplicate runtime rig logic, or keep runtime bootstrap for fork-friendly empty scenes?  
+4. **Diagnostics:** The repo does **not** yet implement Copilot’s proposed **step-by-step Continue** diagnostic UI. Is that worth a PR before feature work, given Quest log friction?  
+5. **Stripping:** Are `[RuntimeInitializeOnLoadMethod]` entries ever stripped at **High** managed stripping? Should `link.xml` preserve specific methods vs namespaces?
+
+---
+
+## Suggested priorities (for debate)
+
+- **P0:** Reliable **XR init + visible frame** on Quest (verify OpenXR features + `XRDisplaySubsystem` in logs).  
+- **P1:** **Passthrough** vertical slice in `HooverMode` (even a single quad / debug grid).  
+- **P2:** **Coverage + path** tied to a real tracked anchor / floor.  
+- **P3:** Session summary UI and persistence.  
+
+---
+
+## Constraints humans care about
+
+- **Safety:** Full passthrough preferred; avoid full-screen opaque overlays in real movement.  
+- **Fork-friendly:** Avoid giant proprietary blobs; document Meta SDK import path.  
+- **Small PRs:** Per user preference, avoid drive-by refactors.  
+
+---
+
+## Reply format requested from Copilot
+
+When responding, please:
+
+1. Separate **(A) Copilot technical suggestions** from **(B) items that need human judgment** (Meta legal/SDK versions, comfort/safety, schedule).  
+2. Call out **assumptions** (e.g. “assumes URP” — wrong for this repo; built-in RP).  
+3. Propose **one minimal next experiment** (e.g. single scene change or one package) before large rewrites.  
+
+---
+
+## Appendix A — Aspirational “Block 5”: maximum telemetry (not in repo)
+
+The following was proposed for a **bristling ball of semi-live telemetry** on Quest. **None of this is implemented** unless files appear under `Assets/Chorewars/Scripts/Diagnostics/`. Use it to plan features and PR breakdowns; do not assume it exists in builds.
+
+**Principles (aspirational):**
+
+- Diagnostic Mode with labelled **Continue** steps before full startup.  
+- **Telemetry HUD** in-headset (subsystem status, FPS, memory, last N log lines).  
+- **Structured JSON line logging** to `Application.persistentDataPath` (e.g. `MQ3.log`) with rotation ~10 MB.  
+- **SubsystemHealth** model (enum per subsystem: NotStarted, Initialising, Ok, Failed).  
+- **Fail loudly:** exceptions → logger + HUD + health state.  
+
+**Suggested deliverables (when implemented):**
+
+| File (proposed) | Role |
+|-----------------|------|
+| `Assets/Chorewars/Scripts/Diagnostics/DiagnosticManager.cs` | Step gating, default diagnostic mode on until stable. |
+| `Assets/Chorewars/Scripts/Diagnostics/TelemetryHUD.cs` | In-headset status + metrics. |
+| `Assets/Chorewars/Scripts/Diagnostics/TelemetryLogger.cs` | JSON lines, rotation, `Info/Warn/Error` API. |
+| `Assets/Chorewars/Scripts/Diagnostics/SubsystemHealth.cs` | Single source of truth for HUD. |
+| `Assets/Chorewars/Prefabs/DiagnosticCanvas.prefab` | World-space or overlay UI. |
+
+**Step sequence (proposed):** (1) Scene loaded (2) XR loader (3) Passthrough permission (4) Passthrough started (5) AR camera (6) HUD (7) Mode controller (8) Path tracker (9) Coverage map (10) Enter game.
+
+**Definition of done (for a future PR):** On device in diagnostic mode, user sees stepper + HUD + disk log; failures are visible in all three.  
+
+Document pull paths for `MQ3.log` via `adb` in `README` or `docs/` when this ships.
+
+---
+
+*End CopilotRef — refresh after major milestones or Unity/package upgrades.*
