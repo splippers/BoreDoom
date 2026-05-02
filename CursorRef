@@ -215,3 +215,267 @@ If yes, I’ll produce a full Cursor‑ready block that:
 - Ensures it runs before XR initialises  
 
 This will let you pinpoint the failure on your Quest 3 in seconds.
+
+You picked the only sane option for where you are right now: C — maximum telemetry.  
+So let’s make BoreDoom exactly what you said it should be:
+
+> “A bristling ball of semi‑live telemetry.”
+
+Here’s CursorRef Block 5 you can bolt straight into your ref file.
+
+---
+
+📦 CURSORREF BLOCK 5 — MAXIMUM TELEMETRY & DIAGNOSTIC MODE
+
+> Goal: Until a stable prototype exists, every BoreDoom Meta Quest 3 build MUST behave like a “bristling ball of semi‑live telemetry”: highly verbose, self‑diagnosing, and impossible to silently fail.
+
+---
+
+🎯 Core principles
+
+Cursor MUST implement:
+
+1. Diagnostic Mode that gates startup with labelled “Continue” steps.  
+2. On‑device Telemetry HUD visible in the headset.  
+3. Structured Logging to Disk on the Quest.  
+4. Log Rotation (MQ3.log → MQ3.1.log, etc.).  
+5. Clear Subsystem Health Model (XR, Passthrough, HUD, Modes, etc.).  
+6. Minimal friction for ADB / wireless log capture.
+
+This is not optional.  
+Until explicitly disabled, Diagnostic Mode + Telemetry HUD MUST be enabled in all builds.
+
+---
+
+🧩 1. Diagnostic Mode (step‑by‑step boot sequence)
+
+Cursor MUST create:
+
+- Assets/Chorewars/Scripts/Diagnostics/DiagnosticManager.cs  
+- Assets/Chorewars/Prefabs/DiagnosticCanvas.prefab
+
+Diagnostic flow:
+
+1. Step 1: Unity Scene Loaded  
+2. Step 2: XR Loader Initialised  
+3. Step 3: Passthrough Permission Granted  
+4. Step 4: Passthrough Started  
+5. Step 5: AR Camera Active  
+6. Step 6: HUD Loaded  
+7. Step 7: Mode Controller Started  
+8. Step 8: Path Tracker Active  
+9. Step 9: Coverage Map Active  
+10. Step 10: Enter Game
+
+Each step:
+
+- Shows a label: Current step: <text>  
+- Has a “Continue” button  
+- Logs a structured event via the logging system  
+
+If the app stalls before a step appears, that subsystem is failing.
+
+DiagnosticManager requirements:
+
+- Runs BEFORE XR initialisation.  
+- Has a bool diagnosticModeEnabled flag (default: true).  
+- When disabled, startup proceeds automatically without step gating.
+
+---
+
+🧩 2. Telemetry HUD (semi‑live in‑headset info)
+
+Cursor MUST create:
+
+- Assets/Chorewars/Scripts/Diagnostics/TelemetryHUD.cs  
+- Integrate into DiagnosticCanvas OR a separate HUD canvas.
+
+TelemetryHUD MUST display:
+
+- Subsystem status:
+  - XR: Not started / Initialising / OK / Failed  
+  - Passthrough: Not requested / Requested / OK / Failed  
+  - AR Camera: Inactive / Active  
+  - HUD: Inactive / Active  
+  - Mode Controller: Inactive / Active  
+  - PathTracker: Inactive / Active  
+  - CoverageMap: Inactive / Active  
+
+- Runtime metrics:
+  - FPS (approximate)  
+  - Frame time (ms)  
+  - Allocated memory (MB)  
+  - GC count (if available)  
+
+- Last N log lines (e.g. 10–20):
+  - Timestamp  
+  - Subsystem  
+  - Severity  
+  - Message  
+
+HUD MUST be:
+
+- Non‑occluding (small, corner‑anchored, semi‑transparent).  
+- Always visible in Diagnostic Mode.  
+- Hideable later when prototype stabilises.
+
+---
+
+🧩 3. Structured logging to disk (on Quest)
+
+Cursor MUST implement:
+
+- Assets/Chorewars/Scripts/Diagnostics/TelemetryLogger.cs
+
+Requirements:
+
+- Writes logs to a file named MQ3.log in Application.persistentDataPath.  
+- Each log entry is a single JSON line:
+
+`json
+{"ts":"2026-05-02T07:22:10Z","sub":"XR","sev":"INFO","msg":"OpenXR loader initialised"}
+`
+
+- Expose static methods:
+
+`csharp
+TelemetryLogger.Info(string subsystem, string message);
+TelemetryLogger.Warn(string subsystem, string message);
+TelemetryLogger.Error(string subsystem, string message, Exception ex = null);
+`
+
+- All major subsystems MUST use this logger:
+  - XR initialisation  
+  - Passthrough permission  
+  - Passthrough start  
+  - AR camera setup  
+  - HUD init  
+  - Mode controllers  
+  - PathTracker  
+  - CoverageMap  
+  - AI network layer  
+
+---
+
+🧩 4. Log rotation (MQ3.log → MQ3.1.log, etc.)
+
+TelemetryLogger MUST:
+
+- Check file size before each write.  
+- If MQ3.log > 10 MB:
+  - Move MQ3.log → MQ3.1.log (or increment index).  
+  - Start a new MQ3.log.  
+
+Rotation can be simple (e.g. keep last 3–5 files).
+
+---
+
+🧩 5. Subsystem health model
+
+Cursor MUST create:
+
+- Assets/Chorewars/Scripts/Diagnostics/SubsystemHealth.cs
+
+`csharp
+public enum SubsystemStatus { NotStarted, Initialising, Ok, Failed }
+
+public class SubsystemHealth
+{
+    public SubsystemStatus xr;
+    public SubsystemStatus passthrough;
+    public SubsystemStatus arCamera;
+    public SubsystemStatus hud;
+    public SubsystemStatus modeController;
+    public SubsystemStatus pathTracker;
+    public SubsystemStatus coverageMap;
+}
+`
+
+- TelemetryHUD MUST read from this model.  
+- Each subsystem MUST update its own status.
+
+Example:
+
+- XR loader starts → xr = Initialising  
+- XR loader success → xr = Ok  
+- XR loader failure → xr = Failed + log error  
+
+---
+
+🧩 6. Integration with your external workflow (Eddie + ADB)
+
+Cursor MUST document (in README or DIAGNOSTICS.md):
+
+- That logs are written to Application.persistentDataPath as MQ3.log, MQ3.1.log, etc.  
+- That they can be pulled via ADB:
+
+`bash
+adb shell ls "$(adb shell echo \$EXTERNAL_STORAGE)/Android/data"
+
+or use Application.persistentDataPath path from logs
+`
+
+- That they can be streamed via:
+
+`bash
+adb logcat | grep "Chorewars"
+`
+
+- That wireless ADB is supported:
+
+`bash
+adb connect <quest-ip>:5555
+adb logcat >> MQ3.log
+`
+
+This aligns with your Eddie + SCP + Cursor agent workflow.
+
+---
+
+🧩 7. Everything must fail loudly
+
+Cursor MUST ensure:
+
+- No silent failures.  
+- Every exception is:
+  - Logged via TelemetryLogger  
+  - Reflected in SubsystemHealth  
+  - Visible in TelemetryHUD (at least as a red “FAILED” status)  
+
+If XR fails, you should see:
+
+- Diagnostic step stuck at “XR Loader Initialised”  
+- TelemetryHUD: XR: Failed  
+- Logs: XR error with message  
+
+---
+
+✅ Definition of “done” for Block 5
+
+This block is satisfied ONLY if:
+
+1. The project contains:
+   - DiagnosticManager.cs  
+   - TelemetryHUD.cs  
+   - TelemetryLogger.cs  
+   - SubsystemHealth.cs  
+   - DiagnosticCanvas.prefab  
+2. On device, in Diagnostic Mode:
+   - You see a stepper with “Continue” buttons.  
+   - You see subsystem statuses.  
+   - You see FPS/memory.  
+   - You see recent log lines.  
+3. The app writes structured logs to MQ3.log and rotates at ~10 MB.  
+4. If XR or passthrough fails, it is visible in:
+   - The stepper  
+   - The HUD  
+   - The logs  
+
+---
+
+🏁 END OF CURSORREF BLOCK 5
+
+If you want, next we can:
+
+- Define Block 6: Quest 3 build & sideload instructions (for README), or  
+- Block 6: GitHub Issues pack so other devs can immediately grab “Implement proper coverage map”, “Improve TelemetryHUD”, etc.
