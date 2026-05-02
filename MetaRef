@@ -1,0 +1,82 @@
+# MetaRef — onboarding Meta AI / Meta developer tooling for BoreDoom
+
+**Purpose:** Bring **Meta-side assistants** (Meta AI, Meta developer resources, or collaborators using Meta’s Unity Quest workflow) up to speed on this repository quickly. Use alongside **`CursorRef`** (Cursor IDE agents) and **`CopilotRef`** (GitHub Copilot + human review).
+
+**Product:** *BoreDoom* — Chorewars-style **passthrough AR** on **Meta Quest 3** for real-world chore coverage (hoover, mow, etc.). Public, fork-friendly scaffold.
+
+---
+
+## What Meta should know first
+
+| Topic | Fact |
+|--------|------|
+| **Engine** | Unity **6000.4.5f1** (`ProjectSettings/ProjectVersion.txt`). |
+| **XR stack** | **Unity XR Management** + **OpenXR** for Android. **Meta Quest Support** + **Oculus Touch Controller Profile** are required on Android for typical Quest presentation (see Unity OpenXR docs). |
+| **Render pipeline** | **Built-in Render Pipeline** (not URP/HDRP by default). Vulkan on Android. |
+| **Meta XR SDK in repo** | **Not vendored.** Contributors import Meta XR packages / `Assets/Meta/` per Meta’s current installer or UPM guidance. |
+| **Scripting define** | **`CHOREWARS_META_XR`** — add in Player Settings when Meta XR is installed; gates `MetaXrHomeOriginProvider`, `RuntimeScanPanel` Meta paths, and OVR-based UI shortcuts. |
+| **Android package** | Default **`com.DefaultCompany.BoreDoom`** unless changed in Player Settings (matches typical dev logs). |
+
+---
+
+## How this project already aligns with Meta Quest / OpenXR
+
+1. **Editor bootstrap** (`Assets/Editor/BoreDoomXrManagementBootstrap.cs`): Ensures **OpenXR loader** assets, **XRGeneralSettingsPerBuildTarget**, and attempts to enable **Meta Quest Support** + **Oculus Touch Controller Profile** for Android OpenXR settings. Requires opening Unity once after clone so assets register.
+
+2. **Runtime XR rig** (`Assets/Chorewars/Scripts/Bootstrap/QuestXrRigBootstrap.cs`): Builds **XROrigin** + tracked camera when scenes are empty — avoids a black headset when YAML scenes lack a camera.
+
+3. **Meta-specific integration (when SDK present):**
+   - **`MetaXrHomeOriginProvider`** (`Assets/Chorewars/Scripts/Integration/MetaXrHomeOriginProvider.cs`) — **OVRSpatialAnchor**-based home origin; compiled only with **`CHOREWARS_META_XR`**.
+   - **UI** (`ModeQuickSwitchPanel`, `HandPinchInput`, `RuntimeScanPanel`) — **reflection / optional assembly names** (`Oculus.VR`, `Meta.XR`) so the project compiles **without** Meta assemblies; full VR UI rays need Meta XR + scene wiring.
+
+4. **Diagnostics** (`Assets/Chorewars/Scripts/Diagnostics/`) — **`MQ3.log`** JSON telemetry on device; **`SubsystemHealth`** includes hooks for passthrough and other subsystems as they are implemented.
+
+---
+
+## Product constraints (please respect)
+
+- **AR / passthrough first:** Design assumes **see-through** operation for safety; avoid opaque full-screen overlays during movement.  
+- **Fork-friendly:** Avoid hard dependency on unreleased or undocumented Meta-only APIs without fallbacks.  
+- **Small PRs:** Prefer incremental Meta integrations (passthrough layer → mesh → anchors) over monolithic rewrites.
+
+---
+
+## Suggested focus areas for Meta AI / Meta developer help
+
+1. **Passthrough on Built-in RP + OpenXR** — minimal composition-layer or Meta-recommended path for Unity 6 / current Meta XR packages.  
+2. **Scene / spatial mesh** — align with existing **`SpatialMeshTracker`**, **`HouseScanSessionController`**, **`ScanRoot`** patterns in `docs/spatial-mapping.md` and `docs/quest3-build.md`.  
+3. **Interaction** — project already anticipates **OVRInputModule / OVRRaycaster** and **`OVRHand`** via reflection; validate against current Meta XR Interaction SDK naming.  
+4. **Performance & lifecycle** — Quest 3 thermal / memory; project uses IL2CPP + stripping — preserve critical types via `Assets/link.xml`.
+
+---
+
+## Files Meta AI should read
+
+| Path | Why |
+|------|-----|
+| `CursorRef` | Full runtime + XR checklist for this repo. |
+| `CopilotRef` | Engineering snapshot, open questions, telemetry appendix. |
+| `docs/quest3-build.md` | Quest build, `CHOREWARS_META_XR`, scene wiring, **MQ3.log** pull. |
+| `docs/spatial-mapping.md` | Spatial / scan concepts. |
+| `Packages/manifest.json` | Unity package baseline (OpenXR, XRI, etc.). |
+
+---
+
+## Questions we’d like Meta-aligned reasoning on
+
+- Smallest **supported** path from **OpenXR + Meta Quest feature** to **Meta Passthrough** on this stack (Built-in RP).  
+- Recommended **package set** (Core vs All-in-One) for **Quest 3 only** in 2026-era Unity 6 projects.  
+- **Anchor / Scene** APIs vs current **`OVRSpatialAnchor`** usage in `MetaXrHomeOriginProvider`.  
+- Validation that **GameActivity** / default Unity entry remain compatible with chosen Meta XR + OpenXR combo.
+
+---
+
+## Cross-reference
+
+- **`CursorRef`** — single source for Cursor agents in-repo.  
+- **`CopilotRef`** — GitHub Copilot + human handoff.  
+- **`MetaRef`** (this file) — Meta ecosystem AI / Meta developer onboarding.
+
+---
+
+*End MetaRef — update when Meta XR package strategy or Unity pin changes materially.*

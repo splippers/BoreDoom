@@ -6,6 +6,8 @@
 **Unity:** 6000.4.5f1 (`ProjectSettings/ProjectVersion.txt`)  
 **Platform focus:** Android / Quest, OpenXR, IL2CPP  
 
+**Related:** **`MetaRef`** — same project context aimed at Meta AI / Meta developer tooling (passthrough, Meta XR SDK, Quest integration).
+
 ---
 
 ## What this repo is

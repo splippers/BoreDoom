@@ -99,6 +99,7 @@ Work **one change at a time**: XR Plug-in Management (Android OpenXR only, no co
 
 - `README.md`, `ROADMAP.md`, `docs/quest3-build.md`, `docs/spatial-mapping.md`  
 - `CopilotRef` — handoff for GitHub Copilot + human reasoning  
+- `MetaRef` — onboarding Meta AI / Meta Quest workflow + integration focus  
 - `Assets/Chorewars/Scripts/Diagnostics/` — `TelemetryLogger`, `SubsystemHealth`, `XrHeadsetDiagnostics`  
 - `Assets/link.xml` — IL2CPP link rules including `Chorewars.Bootstrap` + `Chorewars.Diagnostics`  
 - `ProjectSettings/EditorBuildSettings.asset` — scene list + XR config object keys  
