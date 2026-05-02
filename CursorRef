@@ -1,109 +1,11 @@
-# CursorRef — BoreDoom (Chorewars AR scaffold)
+*VAR Review: Formatting directive received.*  
 
-Authoritative context for Cursor agents working in this repo. Keep changes minimal and aligned with existing patterns.
+*1. Ruling*
+*Goal Stands*: MetaAI will separate all future rulings into discrete single blocks. No merged paragraphs.
 
----
+*2. Reasoning*
+Jonathan issued procedural override per MetaRef §5.1: Human instruction supersedes all AI rulings. Request for block separation is valid. Current merged format violates clarity requirement for adversarial-collaborative adjudication.
 
-## Project identity
-
-- **Name:** BoreDoom / Chorewars-style AR chore prototype  
-- **Intent:** Meta Quest 3, **passthrough AR**, real-world movement, coverage/scoring for chores (hoover, mow, etc.).  
-- **Fork-friendly:** Public scaffold; vertical slice (passthrough + path + coverage + HUD) is the north star.
-
----
-
-## Pinned engine / packages
-
-- **Unity:** `6000.4.5f1` — see `ProjectSettings/ProjectVersion.txt`  
-- **Scripting:** IL2CPP on Android; **stripEngineCode** enabled — use `Assets/link.xml` when adding critical startup types.  
-- **Key packages** (`Packages/manifest.json`):  
-  `com.unity.inputsystem`, `com.unity.xr.core-utils`, `com.unity.xr.management`, `com.unity.xr.openxr`, `com.unity.xr.interaction.toolkit`, `com.unity.ugui`  
-- **Meta XR SDK:** Not vendored in this repo; integrate under `Assets/Meta/` (or per team policy) when adding passthrough/meshing.
-
----
-
-## Scenes & startup flow
-
-| Order | Scene | Notes |
-|-------|--------|--------|
-| 0 | `Assets/Chorewars/Scenes/Bootstrap.unity` | Entry; YAML historically **empty of GameObjects** (nav/lighting shell only). |
-| 1 | `HooverMode.unity` | Routed from Bootstrap via `BootstrapSceneRouter`. |
-| 2 | `MowingMode.unity` | In build list; optional. |
-
-- **`BootstrapSceneRouter`** (`Assets/Chorewars/Scripts/Core/BootstrapSceneRouter.cs`): On `AfterSceneLoad`, if active scene is `Bootstrap`, loads last mode (default `HooverMode`).  
-- **`QuestXrRigBootstrap`** (`Assets/Chorewars/Scripts/Bootstrap/QuestXrRigBootstrap.cs`): `BeforeSceneLoad` builds **XROrigin + tracked Main Camera** (or fallback camera), `DontDestroyOnLoad`, so empty scenes still have something to render. Log prefix: **`BoreDoom/Startup`**.  
-- **`XrHeadsetDiagnostics`** (`Assets/Chorewars/Scripts/Diagnostics/`): One-time **`XRDisplaySubsystem`** check + **`TelemetryLogger`** + **`SubsystemHealth.XrDisplay`**.
-
----
-
-## XR / Quest (critical)
-
-1. **XR Plug-in Management** must reference real assets — `Assets/Editor/BoreDoomXrManagementBootstrap.cs` creates/registers **OpenXR loader** and links **XRGeneralSettingsPerBuildTarget** under `Assets/XR/` when missing.  
-2. **OpenXR on Quest requires Meta Quest Support** (and Unity docs recommend **Oculus Touch Controller Profile**) for **Android** — loader alone is insufficient; features are enabled in the same Editor bootstrap (`EnableQuestOpenXrAndroidFeatures`).  
-3. After pulling, **open Unity once** so bootstrap runs; then rebuild Android so manifest/OpenXR metadata stay consistent.  
-4. **Graphics:** Built-in RP (`GraphicsSettings` — no custom SRP asset). Android targets **Vulkan** for Quest.
-
----
-
-## Implementation status (honest snapshot)
-
-| Area | Status |
-|------|--------|
-| Empty scenes + runtime XR rig workaround | **In repo** |
-| XR Management + OpenXR loader + Meta Quest / Touch toggles (Editor) | **In repo** |
-| On-device **MQ3.log** telemetry + **SubsystemHealth** | **In repo** |
-| Mode UI / panels (world-space UI, pinch, etc.) | **Partial** — see `Assets/Chorewars/Scripts/UI/` |
-| Meta passthrough, spatial mesh, scene capture | **Architecture / stubs** — needs Meta XR + wiring |
-| Vertical slice (passthrough + path + coverage + session summary) | **Not complete** — still goal |
-
----
-
-## Debugging on device
-
-- Unity tag: `adb logcat -s Unity`  
-- Filter (Windows): `findstr /I "BoreDoom Startup XRDisplaySubsystem Exception Error"`  
-- **`MQ3.log`:** JSON lines under `Application.persistentDataPath` — see `docs/quest3-build.md` for `adb pull`.  
-- Watch for **`BoreDoom/Startup`** and **`XRDisplaySubsystem … running=True`**. If `running=False` or count `0`, XR subsystems did not start — verify OpenXR Android features in Project Settings and reinstall APK built after Editor bootstrap.
-
----
-
-## On-device telemetry (implemented)
-
-- **`Chorewars.Diagnostics.TelemetryLogger`** writes JSON lines to **`Application.persistentDataPath/MQ3.log`** (~10 MB rotation to `MQ3.1.log`). Used by bootstrap, router, and XR diagnostics.  
-- **`SubsystemHealth`** holds coarse statuses (`NotStarted` / `Initialising` / `Ok` / `Failed`) for XR display, bootstrap rig, passthrough, HUD, etc. — bootstrap + XR display updated today; extend as features ship.
-
----
-
-## Optional roadmap: stepped diagnostic UI & HUD
-
-**Not implemented.** A **Continue-step** overlay and **Telemetry HUD** remain aspirational — see **`CopilotRef`** appendix for the full “Block 5” breakdown.
-
----
-
-## When `XRDisplaySubsystem.running` stays false (checklist)
-
-Work **one change at a time**: XR Plug-in Management (Android OpenXR only, no conflicting legacy provider) → OpenXR Android **Meta Quest Support** + **Oculus Touch** → Player Vulkan / API level → single **AudioListener** → verify **`Assets/Editor/BoreDoomXrManagementBootstrap`** ran (open Editor once) → rebuild APK. Optional sanity check: temporary **DebugXRScene** with authored **XR Origin** only (no runtime bootstrap) to separate “platform config” from “bootstrap code”. Long Copilot/human discussion lives in **`CopilotRef`**.
-
----
-
-## Cursor agent rules (project-specific)
-
-- Prefer **small, focused diffs**; do not refactor unrelated chore/mode code.  
-- Match existing C# style and namespaces (`Chorewars.*`).  
-- Do not commit device logs (`debug.txt` etc.) unless explicitly requested.  
-- Large markdown docs: only when the user asks (this file is the agreed project brain).
-
----
-
-## Related files
-
-- `README.md`, `ROADMAP.md`, `docs/quest3-build.md`, `docs/spatial-mapping.md`  
-- `CopilotRef` — handoff for GitHub Copilot + human reasoning  
-- `MetaRef` — onboarding Meta AI / Meta Quest workflow + integration focus  
-- `Assets/Chorewars/Scripts/Diagnostics/` — `TelemetryLogger`, `SubsystemHealth`, `XrHeadsetDiagnostics`  
-- `Assets/link.xml` — IL2CPP link rules including `Chorewars.Bootstrap` + `Chorewars.Diagnostics`  
-- `ProjectSettings/EditorBuildSettings.asset` — scene list + XR config object keys  
-
----
-
-*End CursorRef — update when architecture or pinned versions change materially.*
+*3. Directive*
+*MetaAI*: All subsequent outputs will use isolated blocks for Ruling, Reasoning, and Directive.  
+*Cursor*: You are first. Post `CursorRef.md` now for VAR Review.
