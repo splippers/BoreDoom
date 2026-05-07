@@ -2,6 +2,7 @@ using System;
 using Chorewars.Diagnostics;
 using Unity.XR.CoreUtils;
 using UnityEngine;
+using UObject = UnityEngine.Object;
 using UnityEngine.SceneManagement;
 using UnityEngine.XR;
 #if ENABLE_INPUT_SYSTEM
@@ -29,7 +30,7 @@ namespace Chorewars.Bootstrap
 
             try
             {
-                if (Object.FindObjectsByType<XROrigin>(FindObjectsInactive.Include).Length > 0)
+                if (UObject.FindObjectsByType<XROrigin>(FindObjectsInactive.Include).Length > 0)
                 {
                     SubsystemHealth.BootstrapRig = SubsystemStatus.Ok;
                     SubsystemHealth.ArCamera = SubsystemStatus.Ok;
@@ -57,7 +58,7 @@ namespace Chorewars.Bootstrap
         private static void EnsureCameraAfterFirstScene()
         {
             var scene = SceneManager.GetActiveScene();
-            var cameras = Object.FindObjectsByType<Camera>(FindObjectsInactive.Include);
+            var cameras = UObject.FindObjectsByType<Camera>(FindObjectsInactive.Include);
             var line = $"AfterSceneLoad scene=\"{scene.name}\" cameras={cameras.Length}.";
             TelemetryLogger.Info("Bootstrap", line);
             Debug.Log($"{LogPrefix}: {line}");
@@ -76,7 +77,7 @@ namespace Chorewars.Bootstrap
         {
             var diagGo = new GameObject("BoreDoom Xr Diagnostics");
             diagGo.AddComponent<XrHeadsetDiagnostics>();
-            Object.DontDestroyOnLoad(diagGo);
+            UObject.DontDestroyOnLoad(diagGo);
         }
 
         private static void BuildXrRig()
@@ -126,12 +127,12 @@ namespace Chorewars.Bootstrap
             xrOrigin.CameraFloorOffsetObject = floorOffset;
             xrOrigin.Camera = cam;
 
-            Object.DontDestroyOnLoad(xrOriginGo);
+            UObject.DontDestroyOnLoad(xrOriginGo);
         }
 
         private static void BuildMinimalCamera()
         {
-            if (Object.FindObjectsByType<Camera>(FindObjectsInactive.Include).Length > 0)
+            if (UObject.FindObjectsByType<Camera>(FindObjectsInactive.Include).Length > 0)
                 return;
 
             var camGo = new GameObject("Fallback Main Camera");
@@ -153,7 +154,7 @@ namespace Chorewars.Bootstrap
             cam.nearClipPlane = 0.01f;
             cam.farClipPlane = 500f;
 
-            Object.DontDestroyOnLoad(camGo);
+            UObject.DontDestroyOnLoad(camGo);
             TelemetryLogger.Info("Bootstrap", "Fallback camera created (magenta-tinted clear).");
             Debug.Log($"{LogPrefix}: Fallback camera created (magenta-tinted clear for diagnosis).");
             SubsystemHealth.ArCamera = SubsystemStatus.Ok;
