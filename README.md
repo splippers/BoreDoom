@@ -1,55 +1,161 @@
-# Chorewars: BoreDoom! AR (Meta Quest 3)
+# BoreDOOM: Chorewars 💀🧹
+### Turn boring household chores into a game you can win
 
-100% AR chore game for Meta Quest 3.
-Hoover your kitchen, mow your lawn, see your coverage in AR, and score points for real-world movement.
+**BoreDOOM: Chorewars** is a playful, real‑world game that turns everyday household chores into score‑based challenges using augmented reality.
 
-## Vision
-- Use Meta Quest 3 passthrough AR to:
-  - Track where you've cleaned or mowed
-  - Visualise coverage and missed spots
-  - Score efficiency, coverage, and consistency
-- Deliver real physical benefits (steps, cardio, movement) like Pokémon Go, but for chores.
+Clean your kitchen. Mow your lawn. See what you actually covered.  
+Earn points, streaks, and a small sense of triumph where there was once only dread.
 
-## Status
-Early scaffolding. This repo is intentionally public so others can fork it, extend it, and ship it.
+Built for fun first — with real movement and real results.
 
-The original creator’s goal:
-> “I just want someone to fork the repo and complete it so I can do the dishes and score points.”
+---
 
-## Tech stack
-- Unity (LTS, 2022/2023 recommended)
+## What is BoreDOOM?
+
+BoreDOOM is a **household role‑playing game**.
+
+Instead of pretending chores don’t exist, it embraces them and asks:
+> *What if cleaning counted for something?*
+
+Using *Meta Quest 3 passthrough AR*, BoreDOOM can:
+- Visualise where you’ve cleaned or mowed
+- Highlight missed spots
+- Score coverage, efficiency, and consistency
+- Turn physical effort into visible progress
+
+Think *Pokémon Go*, but for the life admin you already have to do.
+
+---
+
+## Why it exists
+
+Chores are boring.  
+That doesn’t mean they have to feel pointless.
+
+BoreDOOM is about:
+- Making movement visible
+- Making effort feel fair
+- Making maintenance mildly heroic
+
+No guilt. No nagging. No “productivity optimisation”.
+Just a game layered on top of real life.
+
+---
+
+## Core experiences (early prototypes)
+
+### 🏠 BoreDOOM! Indoors
+- Vacuuming / hoovering coverage tracking
+- Visual overlays showing cleaned vs missed areas
+- Simple scoring based on coverage and efficiency
+
+### 🌳 BoreDOOM! Outdoors
+- Lawn mowing coverage tracking
+- Visual paths and overlap detection
+- “You missed a bit” — but make it fun
+
+### 🧠 Chorewars Meta (shared systems)
+- Player profiles
+- Streaks and history
+- Cross‑chore scoring
+- Light progression (because number go up good)
+
+---
+
+## Current status
+
+🚧 **Early scaffolding / experimental prototype**
+
+This repository is intentionally public:
+- To encourage forks, experiments, and improvements
+- To keep the scope honest
+- To let someone, somewhere, finish it and finally enjoy doing the dishes
+
+> “I just want to clean my house and get a score for it.”
+
+If that resonates with you — you belong here.
+
+---
+
+## Tech overview (for the curious)
+
+- Unity (LTS 2022/2023 recommended)
+- Meta Quest 3
 - OpenXR
-- Meta XR SDK (Quest 3, passthrough AR)
+- Meta XR SDK (passthrough AR)
 - C#
-- Unity XR Interaction Toolkit (optional but recommended)
+- Unity XR Interaction Toolkit (optional)
 
-## Core modules
-- BoreDoom! Indoors – Hoovering coverage tracking
-- BoreDoom! Outdoors – Lawn mowing coverage tracking
-- Chorewars Meta – Profiles, scoring, streaks, history
+The goal is **believable feedback**, not technical perfection.
 
-## Related repo
-- **ChoreWars (meta layer)**: `https://github.com/splippers/ChoreWars`
-  - Intended home for profiles, progression, streaks, and cross-mode scoring that can be shared across multiple “BoreDoom!” experiences.
+---
+
+## Spatial tracking (prototype)
+
+BoreDOOM experiments with environment mesh capture to:
+- Track where movement happened
+- Visualise coverage during a chore session
+- Export simple spatial snapshots for analysis
+
+Current focus:
+- Single‑session feedback
+- Immediate visual reward
+
+Multi‑session, whole‑house persistence is a *future* goal — not required to have fun.
+
+---
+
+## Philosophy
+
+This is **not**:
+- A productivity app
+- A parenting tool
+- A surveillance system
+- A guilt engine
+
+It *is*:
+- A game
+- Opt‑in
+- Slightly ridiculous
+- Surprisingly motivating
+
+If you laugh while hoovering, it’s working.
+
+---
 
 ## Getting started
+
 1. Clone the repo
-2. Open in Unity (matching the documented version)
+2. Open in Unity (matching the recommended version)
 3. Install Meta XR SDK + OpenXR
 4. Open `Assets/Chorewars/Scenes/Bootstrap.unity`
 5. Build for Quest 3
+6. Clean something you were already avoiding
 
-See `CONTRIBUTING.md` and `ROADMAP.md` for how to help.
-See `docs/quest3-build.md` and `docs/retrieving-exports.md` for device wiring + pulling exported meshes.
+---
 
-## Spatial mapping / “Matterport-ish” capture (prototype)
-This repo includes a starter `XRMeshSubsystem`-based mesh capture script: `SpatialMeshTracker`.
+## Contributing
 
-- During a session (e.g. Hoovering), it can poll environment meshes (when available) and export a snapshot OBJ to `Application.persistentDataPath`.
-- Notes and next steps are in `docs/spatial-mapping.md`.
+Fork it. Break it. Finish it.  
+Ideas, PRs, experiments, and wild forks are welcome.
 
-## Whole-house reconstruction (contiguous map)
-To build a stable, multi-session 3D recreation of your home (Matterport-ish), you need a **persistent reference frame**.
+See:
+- `CONTRIBUTING.md`
+- `ROADMAP.md`
+- `docs/` for build notes and experiments
 
-- This repo stubs `PersistentAnchors` as the integration point for Meta XR persistent anchors.
-- The current prototype focuses on **capturing meshes and exporting snapshots**; anchor-based alignment is the next step to make scans “stick” across sessions.
+---
+
+## The future (intentionally vague)
+
+Better feedback.  
+More chores.  
+More laughter.  
+Possibly fewer arguments about whose turn it is.
+
+---
+
+## TL;DR
+
+You already do chores.  
+**BoreDOOM makes them count.**
