@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>BoreDOOM! — Full Game Design Document</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Exo+2:wght@300;400;600;700&display=swap');
+
+  :root {
+    --ink:      #0a0e1a;
+    --surface:  #111827;
+    --card:     #1a2233;
+    --border:   #2a3550;
+    --accent:   #00d4ff;
+    --gold:     #ffd700;
+    --green:    #39ff14;
+    --orange:   #ff6b35;
+    --purple:   #a855f7;
+    --pink:     #f472b6;
+    --red:      #ef4444;
+    --text:     #e2e8f0;
+    --muted:    #94a3b8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 13px; }
+
+  body {
+    background: var(--ink);
+    color: var(--text);
+    font-family: 'Exo 2', 'Segoe UI', sans-serif;
+    line-height: 1.6;
+  }
+
+  /* ── PAGE BREAKS ── */
+  .page { page-break-after: always; padding: 32px 40px; min-height: 100vh; position: relative; }
+  .page:last-child { page-break-after: auto; }
+
+  /* ── COVER PAGE ── */
+  .cover {
+    background: radial-gradient(ellipse at 30% 40%, #0d1f3c 0%, #050a15 70%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; gap: 24px;
+  }
+  .cover-logo {
+    font-family: 'Orbitron', monospace;
+    font-size: 80px; font-weight: 900;
+    background: linear-gradient(135deg, var(--accent), var(--purple), var(--pink));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    text-shadow: none;
+    letter-spacing: 4px;
+    line-height: 1;
+  }
+  .cover-exclaim {
+    font-family: 'Orbitron', monospace;
+    font-size: 48px; color: var(--gold);
+    letter-spacing: 8px;
+  }
+  .cover-tagline {
+    font-size: 20px; color: var(--muted); max-width: 600px;
+    font-weight: 300; letter-spacing: 2px;
+  }
+  .cover-divider {
+    width: 200px; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  }
+  .cover-meta {
+    font-size: 12px; color: var(--muted); letter-spacing: 3px; text-transform: uppercase;
+  }
+  .cover-platform {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 24px;
+    font-size: 14px; color: var(--accent); letter-spacing: 2px;
+  }
+  .cover-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+    max-width: 600px; width: 100%;
+  }
+  .cover-stat {
+    background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 8px; text-align: center;
+  }
+  .cover-stat-num { font-family: 'Orbitron', monospace; font-size: 28px; color: var(--gold); }
+  .cover-stat-lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+  /* ── HEADERS ── */
+  h1 {
+    font-family: 'Orbitron', monospace;
+    font-size: 28px; color: var(--accent);
+    letter-spacing: 2px; margin-bottom: 16px;
+    border-bottom: 1px solid var(--border); padding-bottom: 8px;
+  }
+  h2 {
+    font-family: 'Orbitron', monospace;
+    font-size: 16px; margin-bottom: 10px;
+    letter-spacing: 1px;
+  }
+  h3 { font-size: 14px; font-weight: 600; margin-bottom: 6px; color: var(--accent); }
+  p { margin-bottom: 10px; font-size: 13px; }
+  ul, ol { margin: 0 0 10px 20px; font-size: 13px; }
+  li { margin-bottom: 4px; }
+
+  /* ── SECTION LABEL ── */
+  .section-label {
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 4px;
+    color: var(--muted); margin-bottom: 24px; margin-top: 4px;
+  }
+
+  /* ── MODE CARDS ── */
+  .mode-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px; margin-bottom: 16px;
+    position: relative; overflow: hidden;
+  }
+  .mode-card::before {
+    content: ''; position: absolute; top: 0; left: 0;
+    width: 4px; height: 100%;
+    background: var(--mode-colour, var(--accent));
+  }
+  .mode-header {
+    display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px;
+  }
+  .mode-name {
+    font-family: 'Orbitron', monospace;
+    font-size: 18px; font-weight: 700;
+    color: var(--mode-colour, var(--accent));
+  }
+  .mode-tagline {
+    font-size: 12px; color: var(--muted); font-style: italic;
+  }
+  .mode-badge {
+    margin-left: auto;
+    background: var(--mode-colour, var(--accent));
+    color: var(--ink); font-size: 10px; font-weight: 700;
+    padding: 2px 8px; border-radius: 20px; letter-spacing: 1px;
+  }
+  .mode-body { font-size: 12.5px; color: var(--text); }
+  .mode-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; }
+  .mode-col-label {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 2px;
+    color: var(--muted); margin-bottom: 4px;
+  }
+  .chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chip {
+    background: rgba(255,255,255,0.07); border: 1px solid var(--border);
+    border-radius: 20px; padding: 2px 10px; font-size: 11px; color: var(--muted);
+  }
+  .chip.accent { background: rgba(0,212,255,0.12); border-color: var(--accent); color: var(--accent); }
+
+  /* ── SCORING TABLE ── */
+  table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 12px; }
+  th {
+    background: var(--border); color: var(--muted); text-transform: uppercase;
+    letter-spacing: 1px; font-size: 10px; padding: 8px 12px; text-align: left;
+  }
+  td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+
+  /* ── GRADES ── */
+  .grade { font-family: 'Orbitron', monospace; font-size: 18px; font-weight: 900; }
+  .grade-sp { color: #ff00ff; }
+  .grade-s  { color: var(--gold); }
+  .grade-a  { color: var(--green); }
+  .grade-b  { color: var(--accent); }
+  .grade-c  { color: var(--orange); }
+  .grade-d  { color: var(--red); }
+
+  /* ── DOLLHOUSE SECTION ── */
+  .dh-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .dh-state {
+    border-radius: 8px; padding: 14px; text-align: center;
+    border: 1px solid var(--border);
+  }
+  .dh-state.chaotic  { background: rgba(239,68,68,0.15);  border-color: #ef4444; }
+  .dh-state.progress { background: rgba(251,191,36,0.15); border-color: #fbbf24; }
+  .dh-state.clean    { background: rgba(57,255,20,0.12);  border-color: #39ff14; }
+  .dh-state.pristine { background: rgba(0,212,255,0.12);  border-color: var(--accent); }
+  .dh-icon { font-size: 28px; margin-bottom: 6px; }
+  .dh-label { font-family: 'Orbitron', monospace; font-size: 12px; }
+  .dh-desc  { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  /* ── VIRAL SECTION ── */
+  .viral-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .viral-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px;
+  }
+  .viral-number {
+    font-family: 'Orbitron', monospace; font-size: 32px;
+    background: linear-gradient(135deg, var(--accent), var(--purple));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: 4px;
+  }
+  .viral-title { font-weight: 700; font-size: 14px; margin-bottom: 6px; }
+  .viral-body  { font-size: 12px; color: var(--muted); }
+
+  /* ── TECH STACK ── */
+  .stack-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .stack-item {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px; text-align: center;
+  }
+  .stack-name { font-weight: 700; font-size: 13px; color: var(--accent); }
+  .stack-desc { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  /* ── FOOTER ── */
+  .page-footer {
+    position: absolute; bottom: 16px; left: 40px; right: 40px;
+    display: flex; justify-content: space-between;
+    font-size: 10px; color: var(--border);
+    border-top: 1px solid var(--border); padding-top: 8px;
+  }
+
+  /* ── CALLOUT ── */
+  .callout {
+    background: linear-gradient(135deg, rgba(0,212,255,0.08), rgba(168,85,247,0.08));
+    border: 1px solid rgba(0,212,255,0.3);
+    border-radius: 10px; padding: 16px; margin: 16px 0;
+  }
+  .callout-title { font-weight: 700; color: var(--accent); margin-bottom: 6px; font-size: 14px; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+
+  /* ── PRINT ── */
+  @media print {
+    body { background: #0a0e1a !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════ COVER ═══ -->
+<div class="page cover">
+  <div class="cover-logo">BoreDOOM</div>
+  <div class="cover-exclaim">!</div>
+  <div class="cover-divider"></div>
+  <div class="cover-tagline">Turn household chores into an AR obsession. Meta Quest 3 · Real rooms · Real satisfaction.</div>
+  <div class="cover-platform">META QUEST 3 · PASSTHROUGH AR · UNITY 6</div>
+
+  <div class="cover-grid">
+    <div class="cover-stat"><div class="cover-stat-num">12</div><div class="cover-stat-lbl">Game Modes</div></div>
+    <div class="cover-stat"><div class="cover-stat-num">3D</div><div class="cover-stat-lbl">Dollhouse</div></div>
+    <div class="cover-stat"><div class="cover-stat-num">LAN</div><div class="cover-stat-lbl">Battle Mode</div></div>
+    <div class="cover-stat"><div class="cover-stat-num">S+</div><div class="cover-stat-lbl">Top Grade</div></div>
+  </div>
+
+  <div class="cover-divider"></div>
+  <div class="cover-meta">Full Game Design Document · AI Sprint 2026-05-21 · Splippers.com</div>
+</div>
+
+<!-- ═════════════════════════════════════════════════ WHAT IS IT ═══ -->
+<div class="page">
+  <div class="section-label">Overview</div>
+  <h1>What is BoreDOOM! ?</h1>
+
+  <p>BoreDOOM! is a Meta Quest 3 augmented reality game that transforms your home into a game level. When you pick up the hoover, mow the lawn, or tidy the shed, BoreDOOM! turns the chore into a competitive, score-based experience — tracking your real physical movements and visualising them as gameplay inside your actual room.</p>
+
+  <p>The core loop is simple: <strong>move through real space → see real-time AR feedback → score points → beat your ghost → share the result</strong>. The dopamine hit of watching your house turn green in the dollhouse view is genuinely addictive.</p>
+
+  <div class="callout">
+    <div class="callout-title">The Viral Hook</div>
+    At the end of every session, BoreDOOM! generates a 1080×1080 share card: an overhead view of your miniature dollhouse with coverage heat-maps, your grade, and your score. It looks insane. People post it. Their friends want to try it. The game sells itself.
+  </div>
+
+  <div class="two-col">
+    <div>
+      <h3>The Dollhouse System</h3>
+      <p>Your home is mirrored as a 1:20-scale 3D dollhouse rendered in the corner of your passthrough view. Rooms update in real-time as you clean them — dirty red → in-progress amber → clean green → pristine cyan. When every room hits Pristine, the app auto-generates your share card.</p>
+    </div>
+    <div>
+      <h3>The Ghost Run System</h3>
+      <p>Every session is saved as a ghost: a path through your home with timing data. Next time you do the same chore, your ghost replays as a translucent blue line and floating head. Beat it and you set a new personal best. It's Strava for housework.</p>
+    </div>
+  </div>
+
+  <h2 style="margin-top: 16px;">How It Works (Technical)</h2>
+  <ul>
+    <li><strong>Passthrough AR</strong>: Meta Quest 3 colour passthrough — your real room, not a virtual one.</li>
+    <li><strong>Spatial Mesh</strong>: OpenXR mesh subsystem reads the room geometry. Coverage is tracked on a 25cm-cell grid mapped to real floor area.</li>
+    <li><strong>OVR Scene API</strong>: Room boundaries, floor area, and object classifications come from Meta's scene understanding.</li>
+    <li><strong>Path Tracker</strong>: Controller position is sampled 10×/sec and stored as a world-space vector list for ghost replay and coverage calculation.</li>
+    <li><strong>Unity MCP</strong>: AI agents can interact with the Unity Editor directly via the MCP plugin for rapid asset wiring.</li>
+  </ul>
+</div>
+
+<!-- ═════════════════════════════════════════════════ MODES 1-4 ═══ -->
+<div class="page">
+  <div class="section-label">Game Modes</div>
+  <h1>Core Modes</h1>
+
+  <!-- STANDARD COVERAGE -->
+  <div class="mode-card" style="--mode-colour: #00d4ff;">
+    <div class="mode-header">
+      <div class="mode-name">Standard Coverage</div>
+      <div class="mode-tagline">— "Cover every inch"</div>
+      <div class="mode-badge">BASE MODE</div>
+    </div>
+    <div class="mode-body">
+      <p>The foundation of BoreDOOM!. Hoover or mow your room while the AR overlay fills in your coverage map in real-time. Every 25cm²-cell you pass over lights up. The HUD shows a percentage, a grade, and a live timer. Perfect for daily habit-building.</p>
+      <div class="mode-cols">
+        <div>
+          <div class="mode-col-label">Scoring</div>
+          <ul>
+            <li>Coverage % × 10 pts base</li>
+            <li>Efficiency score × 5 pts</li>
+            <li>Movement consistency × 5 pts</li>
+            <li>Grade thresholds: D/C/B/A/S/S+</li>
+          </ul>
+        </div>
+        <div>
+          <div class="mode-col-label">AR Features</div>
+          <ul>
+            <li>Coverage heat-map overlay</li>
+            <li>Live progress HUD (%)  </li>
+            <li>Uncleaned zones highlighted red</li>
+            <li>Dollhouse updates in corner</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="chip-row">
+      <div class="chip">Hoovering</div><div class="chip">Mowing</div>
+      <div class="chip accent">Supports Ghost Run</div><div class="chip accent">Supports Power-ups</div>
+    </div>
+  </div>
+
+  <!-- PERFECT GRID -->
+  <div class="mode-card" style="--mode-colour: #ffd700;">
+    <div class="mode-header">
+      <div class="mode-name">Perfect Grid</div>
+      <div class="mode-tagline">— "Football pitch perfection"</div>
+      <div class="mode-badge">SKILL MODE</div>
+    </div>
+    <div class="mode-body">
+      <p>AR projects parallel stripe lines across your floor — the classic football pitch stripe look. Follow them precisely for alignment bonuses. Each stripe has a progress bar; hit 80% on a stripe to mark it "cleared" (it turns gold). Get all stripes to unlock the S+ zone.</p>
+      <div class="mode-cols">
+        <div>
+          <div class="mode-col-label">Patterns</div>
+          <ul>
+            <li>Parallel — classic stripe</li>
+            <li>Diagonal — 45° offset stripes</li>
+            <li>Herringbone — V-pattern</li>
+            <li>Spiral — inward spiral</li>
+          </ul>
+        </div>
+        <div>
+          <div class="mode-col-label">Bonus Scoring</div>
+          <ul>
+            <li>Up to +300 alignment bonus</li>
+            <li>Per-stripe coverage tracked</li>
+            <li>Stripe cleared glow animation</li>
+            <li>Pattern completion fireworks</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="chip-row">
+      <div class="chip">Mowing</div><div class="chip">Hoovering</div>
+      <div class="chip accent">+300 Bonus Points Max</div>
+    </div>
+  </div>
+
+  <!-- GHOST RUN -->
+  <div class="mode-card" style="--mode-colour: #a855f7;">
+    <div class="mode-header">
+      <div class="mode-name">Ghost Run</div>
+      <div class="mode-tagline">— "Beat your best self"</div>
+      <div class="mode-badge">PERSONAL BEST</div>
+    </div>
+    <div class="mode-body">
+      <p>Your previous best session is replayed as a translucent blue ghost: a LineRenderer path through your room with a floating sphere "head" moving at the original speed. Clean faster or more efficiently and you set a new personal best. It's Strava for housework.</p>
+      <div class="mode-cols">
+        <div>
+          <div class="mode-col-label">Ghost Data Saved</div>
+          <ul>
+            <li>Full world-space path</li>
+            <li>Session duration</li>
+            <li>Points scored</li>
+            <li>Per-mode personal bests</li>
+          </ul>
+        </div>
+        <div>
+          <div class="mode-col-label">AR Features</div>
+          <ul>
+            <li>Blue translucent ghost line</li>
+            <li>Ghost head bobbing sphere</li>
+            <li>Ahead/behind indicator</li>
+            <li>New PB celebration effect</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="chip-row">
+      <div class="chip">All chore types</div>
+      <div class="chip accent">Persistent via PlayerProfile</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════════════════════════════════════════════ MODES 5-8 ═══ -->
+<div class="page">
+  <div class="section-label">Game Modes (continued)</div>
+
+  <!-- CHAOS ASSESSMENT -->
+  <div class="mode-card" style="--mode-colour: #ef4444;">
+    <div class="mode-header">
+      <div class="mode-name">Chaos Assessment</div>
+      <div class="mode-tagline">— "How bad is it really?"</div>
+      <div class="mode-badge">SCAN MODE</div>
+    </div>
+    <div class="mode-body">
+      <p>Walk through every room without cleaning anything. BoreDOOM! analyses spatial mesh density (triangles per m²) to estimate clutter levels in each room. Your dollhouse fills with fire and smoke effects proportional to the chaos score. Results are served with roasting commentary.</p>
+      <div class="mode-cols">
+        <div>
+          <div class="mode-col-label">Chaos Labels</div>
+          <ul>
+            <li>🔥 DOOMED (9+)</li>
+            <li>😬 Chaos Adjacent (7+)</li>
+            <li>Lived In / Honest (5+)</li>
+            <li>Mostly Fine (3+)</li>
+            <li>🕵️ Suspicious Minimalist (&lt;3)</li>
+          </ul>
+        </div>
+        <div>
+          <div class="mode-col-label">AR Effects</div>
+          <ul>
+            <li>Fire particle systems in bad rooms</li>
+            <li>Smoke effects in messy rooms</li>
+            <li>Dollhouse chaos overlay</li>
+            <li>Per-room score display</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="chip-row"><div class="chip">No cleaning required</div><div class="chip accent">Shareable chaos report</div></div>
+  </div>
+
+  <!-- MOWING ART -->
+  <div class="mode-card" style="--mode-colour: #f472b6;">
+    <div class="mode-header">
+      <div class="mode-name">Mowing Art</div>
+      <div class="mode-tagline">— "Clean like a canvas"</div>
+      <div class="mode-badge">CREATIVE</div>
+    </div>
+    <div class="mode-body">
+      <p>Instead of just covering the floor, trace a specific decorative pattern. AR renders the target design — Stripes, Diamond, Spiral, or Chevron. Each pattern cell lights up when you pass through it. The final result is a beautiful geometric floor design, photographable from above.</p>
+      <div class="mode-cols">
+        <div>
+          <div class="mode-col-label">Patterns</div>
+          <ul>
+            <li>Stripes (even-Z cells)</li>
+            <li>Diamond (checkerboard)</li>
+            <li>Chevron (V-wave)</li>
+            <li>Spiral (full coverage)</li>
+          </ul>
+        </div>
+        <div>
+          <div class="mode-col-label">Bonus</div>
+          <ul>
+            <li>Up to +500 art bonus pts</li>
+            <li>Gold → green cell transitions</li>
+            <li>Overhead share card = viral</li>
+            <li>Pattern completion % tracked</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="chip-row"><div class="chip">Mowing</div><div class="chip">Hoovering</div><div class="chip accent">Most viral mode</div></div>
+  </div>
+
+  <!-- DECLUTTER DASH -->
+  <div class="mode-card" style="--mode-colour: #ff6b35;">
+    <div class="mode-header">
+      <div class="mode-name">Declutter Dash</div>
+      <div class="mode-tagline">— "Race the clock"</div>
+      <div class="mode-badge">TIMED</div>
+    </div>
+    <div class="mode-body">
+      <p>2-minute sprint: walk to AR-tagged objects detected by OVRSceneObject classification, and "collect" them by walking within arm's reach. The room fills with glowing orbs above real furniture and clutter. Hit as many as possible before the timer dies.</p>
+      <div class="mode-cols">
+        <div><div class="mode-col-label">Scoring</div><ul><li>50 pts per item collected</li><li>Timer shown in red when &lt;20s</li><li>Configurable 60/120/180s sessions</li></ul></div>
+        <div><div class="mode-col-label">AR Features</div><ul><li>Floating glow indicators above items</li><li>Collect animation on pickup</li><li>Countdown HUD with urgency colours</li></ul></div>
+      </div>
+    </div>
+    <div class="chip-row"><div class="chip">Any room</div><div class="chip accent">OVR Scene Objects</div></div>
+  </div>
+
+  <!-- CHOREWARS BATTLE -->
+  <div class="mode-card" style="--mode-colour: #10f0a0;">
+    <div class="mode-header">
+      <div class="mode-name">ChoreWars Battle</div>
+      <div class="mode-tagline">— "LAN co-op cleaning race"</div>
+      <div class="mode-badge">MULTIPLAYER</div>
+    </div>
+    <div class="mode-body">
+      <p>Two players on the same WiFi network each clean their own home simultaneously. Real-time UDP sync (port 27877) shows the opponent's coverage percentage and a YOU'RE WINNING / CATCH UP! indicator. First to hit 80% coverage wins. Margin-based bonus for the winner.</p>
+      <div class="mode-cols">
+        <div><div class="mode-col-label">Network</div><ul><li>UDP broadcast LAN (port 27877)</li><li>1.5s sync interval</li><li>No internet required</li><li>Auto-discovers peers on subnet</li></ul></div>
+        <div><div class="mode-col-label">Scoring</div><ul><li>Coverage points (standard)</li><li>Win margin × 4 bonus (max +200)</li><li>Losing player still scores normally</li></ul></div>
+      </div>
+    </div>
+    <div class="chip-row"><div class="chip">2 players</div><div class="chip">LAN only</div><div class="chip accent">No internet needed</div></div>
+  </div>
+</div>
+
+<!-- ═════════════════════════════════════════════════ MODES 9-12 ═══ -->
+<div class="page">
+  <div class="section-label">Zone Modes</div>
+  <h1>Special Zone Modes</h1>
+  <p style="color: var(--muted); margin-bottom: 20px;">These modes target specific high-chaos rooms in the home. Each inherits full coverage tracking but adds a unique twist mechanic that rewards thorough, methodical cleaning.</p>
+
+  <!-- ATTIC ATTACK -->
+  <div class="mode-card" style="--mode-colour: #c8a882;">
+    <div class="mode-header">
+      <div class="mode-name">Attic Attack</div>
+      <div class="mode-tagline">— "Fear the dark. Clean it anyway."</div>
+      <div class="mode-badge">ZONE</div>
+    </div>
+    <div class="mode-body">
+      <p>Attic cleaning in near-darkness — only the "flashlight cone" in front of you counts for coverage. Cobweb zones require 2-second dwell to "clear." Skip more than 20% of cobwebs and a Darkness Penalty (0.8×) hits your final score. Looking up at the ceiling earns double points.</p>
+      <div class="mode-cols">
+        <div><div class="mode-col-label">Unique Mechanics</div><ul><li>Flashlight coverage cone</li><li>Cobweb dwell zones (8 total)</li><li>Ceiling scan bonus</li><li>Darkness penalty</li></ul></div>
+        <div><div class="mode-col-label">Bonus Points</div><ul><li>+200 max ceiling bonus</li><li>+150 cobweb clear bonus</li><li>0.8× multiplier if &lt;80% cobwebs</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SHED DREAD -->
+  <div class="mode-card" style="--mode-colour: #6ab04c;">
+    <div class="mode-header">
+      <div class="mode-name">Shed Dread</div>
+      <div class="mode-tagline">— "Spiders. Tools. Respect."</div>
+      <div class="mode-badge">ZONE</div>
+    </div>
+    <div class="mode-body">
+      <p>Organise a chaotic shed. 10 AR tool icons float around — pick each one up (1.5s dwell) and file it in the correct colour-coded zone. Correct placement builds a combo multiplier. Misplacements cost 20 pts. Random spider encounters spawn for bonus points if you "shoo" them away.</p>
+      <div class="mode-cols">
+        <div><div class="mode-col-label">Unique Mechanics</div><ul><li>Tool pickup + placement system</li><li>6 colour-coded storage zones</li><li>Combo multiplier for streaks</li><li>Random spider encounters</li></ul></div>
+        <div><div class="mode-col-label">Scoring</div><ul><li>50 pts × combo per correct place</li><li>−20 pts per misplacement</li><li>+10 pts per spider shooed</li><li>Coverage still tracked normally</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="two-col" style="margin-top: 12px;">
+    <!-- BASEMENT BUST -->
+    <div class="mode-card" style="--mode-colour: #4f78e0;">
+      <div class="mode-header"><div class="mode-name">Basement Bust</div><div class="mode-badge">ZONE</div></div>
+      <div class="mode-body">
+        <p>Conquer the basement. AR highlights damp patches and stains detected in the spatial mesh. Each stain zone requires extra dwell time to "treat." Coverage counts double in low-ceiling zones. Bonus for completing all stain zones before finishing standard coverage.</p>
+        <div class="chip-row" style="margin-top: 8px;"><div class="chip">Stain zones</div><div class="chip">Double-coverage low areas</div></div>
+      </div>
+    </div>
+    <!-- GARAGE BARRAGE -->
+    <div class="mode-card" style="--mode-colour: #888888;">
+      <div class="mode-header"><div class="mode-name">Garage Barrage</div><div class="mode-badge">ZONE</div></div>
+      <div class="mode-body">
+        <p>The garage: tight spaces, oil stains, car navigation. AR marks oil stain zones that require double-passes. Coverage bonus for cleaning behind/beside detected large objects. Tight corridor bonus for navigating narrow paths without "hitting" virtual walls.</p>
+        <div class="chip-row" style="margin-top: 8px;"><div class="chip">Oil zones</div><div class="chip">Navigation bonus</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ SCORING ═══ -->
+<div class="page">
+  <div class="section-label">Scoring System</div>
+  <h1>Points, Grades &amp; Power-ups</h1>
+
+  <h2>Grade Thresholds</h2>
+  <table>
+    <tr><th>Grade</th><th>Points</th><th>Meaning</th><th>Colour</th></tr>
+    <tr><td><span class="grade grade-sp">S+</span></td><td>1,100+</td><td>Literally perfect. You hoover professionally. With bonus points only.</td><td style="color:#ff00ff;">Magenta</td></tr>
+    <tr><td><span class="grade grade-s">S</span></td><td>900–1,099</td><td>Exceptional coverage, high efficiency. Share this one.</td><td style="color:#ffd700;">Gold</td></tr>
+    <tr><td><span class="grade grade-a">A</span></td><td>750–899</td><td>Solid session. Room is genuinely clean.</td><td style="color:#39ff14;">Green</td></tr>
+    <tr><td><span class="grade grade-b">B</span></td><td>600–749</td><td>Good effort. A few corners missed.</td><td style="color:#00d4ff;">Cyan</td></tr>
+    <tr><td><span class="grade grade-c">C</span></td><td>400–599</td><td>You tried. The hoover knows.</td><td style="color:#ff6b35;">Orange</td></tr>
+    <tr><td><span class="grade grade-d">D</span></td><td>&lt;400</td><td>Did you actually hoover or just walk near it?</td><td style="color:#ef4444;">Red</td></tr>
+  </table>
+
+  <h2>Base Score Formula</h2>
+  <div class="callout" style="font-family: monospace; font-size: 12px;">
+    <strong>Base Points</strong> = (coverage_percent × 10) + (efficiency_score × 5) + (movement_score × 5)<br>
+    <strong>Total Points</strong> = Base × power_up_multiplier + bonus_points<br><br>
+    <em>Bonus points from mode-specific mechanics are added before grading, so they can push you into S+ territory.</em>
+  </div>
+
+  <h2 style="margin-top: 16px;">Power-Up System</h2>
+  <p>During active sessions, AR power-up orbs spawn around the room. Walk through one to activate it.</p>
+  <table>
+    <tr><th>Power-Up</th><th>Effect</th><th>Duration</th></tr>
+    <tr><td style="color:var(--gold);">⭐ Score Multiplier</td><td>2× points on all coverage for duration</td><td>15 seconds</td></tr>
+    <tr><td style="color:var(--green);">💚 Coverage Boost</td><td>Instant +5% coverage added</td><td>Instant</td></tr>
+    <tr><td style="color:var(--accent);">🧊 Time Freeze</td><td>Countdown timer pauses</td><td>10 seconds</td></tr>
+    <tr><td style="color:var(--purple);">👻 Ghost Trail</td><td>Ghost path reveals optimal route</td><td>20 seconds</td></tr>
+    <tr><td style="color:var(--pink);">⚡ Speed Clean</td><td>Coverage cell size doubled</td><td>30 seconds</td></tr>
+  </table>
+
+  <h2>Achievements</h2>
+  <div class="two-col">
+    <div>
+      <table>
+        <tr><th>Achievement</th><th>Condition</th></tr>
+        <tr><td>🧹 First Clean</td><td>Complete first session</td></tr>
+        <tr><td>🎩 Hat Trick</td><td>3-day streak</td></tr>
+        <tr><td>⚔️ Week Warrior</td><td>7-day streak</td></tr>
+      </table>
+    </div>
+    <div>
+      <table>
+        <tr><th>Achievement</th><th>Condition</th></tr>
+        <tr><td>💎 10K Club</td><td>10,000 lifetime points</td></tr>
+        <tr><td>🌟 S-Class Cleaner</td><td>Score S grade</td></tr>
+        <tr><td>✨ No Spot Left Behind</td><td>100% coverage</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════ DOLLHOUSE ════ -->
+<div class="page">
+  <div class="section-label">Dollhouse System</div>
+  <h1>The 3D Dollhouse</h1>
+
+  <p>The dollhouse is BoreDOOM!'s signature visual. A 1:20-scale 3D model of your home is rendered in the corner of the passthrough view, updating in real-time as you clean. It's the "city skyline at night lighting up" moment — but for your house.</p>
+
+  <h2>Room States</h2>
+  <div class="dh-grid">
+    <div class="dh-state chaotic">
+      <div class="dh-icon">🔥</div>
+      <div class="dh-label" style="color:#ef4444;">CHAOTIC</div>
+      <div class="dh-desc">0–25% clean. Dark, dirty, fire effects. "Before" state.</div>
+    </div>
+    <div class="dh-state progress">
+      <div class="dh-icon">🟡</div>
+      <div class="dh-label" style="color:#fbbf24;">IN PROGRESS</div>
+      <div class="dh-desc">25–75% clean. Amber glow, dirt clearing.</div>
+    </div>
+    <div class="dh-state clean">
+      <div class="dh-icon">✅</div>
+      <div class="dh-label" style="color:#39ff14;">CLEAN</div>
+      <div class="dh-desc">75–95% clean. Green and bright, smooth transition.</div>
+    </div>
+    <div class="dh-state pristine">
+      <div class="dh-icon">✨</div>
+      <div class="dh-label" style="color:var(--accent);">PRISTINE</div>
+      <div class="dh-desc">95%+ clean. Cyan sparkle. Triggers share card.</div>
+    </div>
+  </div>
+
+  <h2 style="margin-top: 20px;">Technical Architecture</h2>
+  <div class="two-col">
+    <div>
+      <h3>DollhouseManager</h3>
+      <ul>
+        <li>Manages room state dictionary</li>
+        <li>Animated material transitions (0.8s smooth lerp)</li>
+        <li><code>WorldToDollhouse(pos)</code> — 1:20 scale conversion</li>
+        <li>Auto-triggers share card when all rooms Pristine</li>
+        <li>CraicKen reporter integration</li>
+      </ul>
+    </div>
+    <div>
+      <h3>DollhouseRoomSlicer</h3>
+      <ul>
+        <li>Reads OVRSceneRoom anchors on Quest 3</li>
+        <li>Creates scaled floor quads per room</li>
+        <li>Editor placeholder (5×5m) for testing</li>
+        <li>Feeds Renderer[] into DollhouseManager</li>
+        <li>ApplyCoverageToRoom() hook</li>
+      </ul>
+    </div>
+  </div>
+  <div class="two-col" style="margin-top: 12px;">
+    <div>
+      <h3>DollhouseHoverTrail</h3>
+      <ul>
+        <li>LineRenderer on the dollhouse</li>
+        <li>Maps PathTracker positions via WorldToDollhouse</li>
+        <li>Height locked to 0.01f (just above floor)</li>
+        <li>Updated every LateUpdate when new points arrive</li>
+      </ul>
+    </div>
+    <div>
+      <h3>DollhouseSnapshotCamera</h3>
+      <ul>
+        <li>Orthographic camera above the dollhouse</li>
+        <li>1080×1080 RenderTexture → PNG</li>
+        <li>Saved to persistent data path</li>
+        <li>Android: MediaScanner makes it gallery-visible</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout" style="margin-top: 20px;">
+    <div class="callout-title">Share Card = The Viral Engine</div>
+    The share card is generated automatically when a session ends with S/S+ grade, or manually via the share button in SessionSummaryUI. It's an overhead shot of the dollhouse with coverage heat-map, grade, points, and the BoreDOOM logo. Optimised for Instagram Stories (1080×1080).
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════ TECH STACK ═══ -->
+<div class="page">
+  <div class="section-label">Technical</div>
+  <h1>Tech Stack &amp; Architecture</h1>
+
+  <div class="stack-grid">
+    <div class="stack-item"><div class="stack-name">Unity 6000.4.5f1</div><div class="stack-desc">Game engine. Built-in RP. IL2CPP on device.</div></div>
+    <div class="stack-item"><div class="stack-name">Meta Quest 3</div><div class="stack-desc">Target hardware. Full colour passthrough. 120Hz.</div></div>
+    <div class="stack-item"><div class="stack-name">OpenXR</div><div class="stack-desc">XR runtime. Mesh subsystem. Spatial anchors.</div></div>
+    <div class="stack-item"><div class="stack-name">Meta XR SDK</div><div class="stack-desc">OVRSceneRoom, OVRSceneObject, OVRCameraRig.</div></div>
+    <div class="stack-item"><div class="stack-name">Unity MCP</div><div class="stack-desc">AI agents wire scenes directly in the Editor.</div></div>
+    <div class="stack-item"><div class="stack-name">TextMeshPro</div><div class="stack-desc">All UI text. Grade labels, HUD, summaries.</div></div>
+    <div class="stack-item"><div class="stack-name">CraicKen API</div><div class="stack-desc">LAN agent network. Session reporting. Memory.</div></div>
+    <div class="stack-item"><div class="stack-name">UDP (port 27877)</div><div class="stack-desc">LocalNetworkAPI. ChoreWars real-time sync.</div></div>
+    <div class="stack-item"><div class="stack-name">PlayerProfile</div><div class="stack-desc">Singleton. JSON persistence. Ghost data. Achievements.</div></div>
+  </div>
+
+  <h2 style="margin-top: 20px;">Script Architecture</h2>
+  <table>
+    <tr><th>Namespace</th><th>Key Scripts</th><th>Purpose</th></tr>
+    <tr><td>Chorewars.Core</td><td>ScoringEngine, PlayerProfile, ChoreSession, PowerUpSystem</td><td>Game rules, data, persistence</td></tr>
+    <tr><td>Chorewars.AR</td><td>CoverageMap, PathTracker, SpatialMeshTracker</td><td>Spatial tracking, mesh capture</td></tr>
+    <tr><td>Chorewars.Modes</td><td>BaseCoverageMode + 12 subclasses</td><td>All gameplay modes</td></tr>
+    <tr><td>Chorewars.Dollhouse</td><td>DollhouseManager, DollhouseRoomSlicer, HoverTrail, SnapshotCamera</td><td>Miniature house visual system</td></tr>
+    <tr><td>Chorewars.UI</td><td>ChoreSelectionUI, HUDController, SessionSummaryUI</td><td>All in-game UI</td></tr>
+    <tr><td>Chorewars.Integration</td><td>LocalNetworkAPI, CraicKenReporter</td><td>Network, LAN battle, reporting</td></tr>
+  </table>
+
+  <h2 style="margin-top: 16px;">AI Agent Sprint</h2>
+  <p>BoreDOOM! is being developed by a fleet of AI agents on the Splipperverse LAN:</p>
+  <table>
+    <tr><th>Agent</th><th>Hardware</th><th>Sprint Task</th></tr>
+    <tr><td>DAD (Slartibartfast)</td><td>Win11, 32GB, GTX 1650</td><td>Unity scene wiring + Quest 3 build</td></tr>
+    <tr><td>eddie (EDDIE)</td><td>LAN node</td><td>DollhouseClean.shader HLSL</td></tr>
+    <tr><td>lave (LAVE)</td><td>Dell XPS, GTX 1650</td><td>LocalNetworkAPI UDP for ChoreWars</td></tr>
+    <tr><td>gemini</td><td>Cloud AI</td><td>OVRSceneObject API + DeclutterDash</td></tr>
+    <tr><td>vroomfondel</td><td>LAN node</td><td>PlayerProfile persistence + GhostRun</td></tr>
+  </table>
+
+  <div class="page-footer">
+    <span>BoreDOOM! Full Game Design Document</span>
+    <span>Splippers.com · AI Sprint 2026-05-21</span>
+    <span>Confidential — Internal Use</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════ VIRAL ══════ -->
+<div class="page">
+  <div class="section-label">Viral Potential</div>
+  <h1>Why This Goes Viral</h1>
+
+  <div class="viral-grid">
+    <div class="viral-card">
+      <div class="viral-number">01</div>
+      <div class="viral-title">The Share Card</div>
+      <div class="viral-body">Every session ends with an auto-generated overhead shot of your dollhouse — heat-mapped, graded, stamped. It's visually distinctive and instantly shows your achievement. People post it without being asked.</div>
+    </div>
+    <div class="viral-card">
+      <div class="viral-number">02</div>
+      <div class="viral-title">Mowing Art</div>
+      <div class="viral-body">Tracing geometric patterns in your lawn or carpet, then capturing the overhead dollhouse view, creates content that looks like crop circles. The TikTok category writes itself: "I traced a diamond in my living room."</div>
+    </div>
+    <div class="viral-card">
+      <div class="viral-number">03</div>
+      <div class="viral-title">Chaos Assessment</div>
+      <div class="viral-body">Show people their chaos score. Everyone is either insulted by their result or proud of it. "My living room scored 8.7/10 DOOMED 🔥" is a shareable sentence. The roast comments write themselves.</div>
+    </div>
+    <div class="viral-card">
+      <div class="viral-number">04</div>
+      <div class="viral-title">ChoreWars Battle</div>
+      <div class="viral-body">Two people in different homes racing to clean simultaneously, with a live score ticker, creates urgency and stakes. "My partner beat me to 80% while I was still finding the hoover" = genuine story content.</div>
+    </div>
+    <div class="viral-card">
+      <div class="viral-number">05</div>
+      <div class="viral-title">Ghost Run</div>
+      <div class="viral-body">Chasing your own ghost while hoovering is genuinely funny to explain. "I'm racing myself. My past self hoovered faster." The concept is absurd in the best way. Fitness apps wish they could claim this energy.</div>
+    </div>
+    <div class="viral-card">
+      <div class="viral-number">06</div>
+      <div class="viral-title">The Dollhouse Moment</div>
+      <div class="viral-body">Watching your real house render in miniature in the corner of your AR view while you clean it — rooms turning from red to green in real time — is a profound enough moment that first-timers describe it as "magic." That word travels.</div>
+    </div>
+  </div>
+
+  <div class="callout" style="margin-top: 24px;">
+    <div class="callout-title">Target Market</div>
+    <p>Primary: 18–35 Quest 3 owners who already exercise with VR fitness apps (Beat Saber, Supernatural). Secondary: Productivity-gamification audience (Habitica, BeReal). The key insight: <strong>these people already own the hardware and already feel guilty about their messy homes.</strong> BoreDOOM! is the app that resolves that cognitive dissonance.</p>
+  </div>
+
+  <div class="page-footer">
+    <span>BoreDOOM! — Why It Goes Viral</span>
+    <span>Splippers.com · 2026</span>
+    <span>Page 7/7</span>
+  </div>
+</div>
+
+</body>
+</html>
