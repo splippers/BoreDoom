@@ -1,6 +1,7 @@
 using UnityEngine;
 using Chorewars.AR;
 using Chorewars.Core;
+using Chorewars.UI;
 
 namespace Chorewars.Modes
 {
@@ -18,21 +19,36 @@ namespace Chorewars.Modes
         public SpatialMeshTracker spatialMeshTracker;
         public HouseMapRecorder houseMapRecorder;
 
+        [Header("UI")]
+        [SerializeField] private SessionSummaryUI summaryUI;
+        [SerializeField] private HUDController hud;
+
         protected ChoreSession Session;
+        public ChoreResult LastResult { get; private set; }
 
         public string ModeId => modeId;
         public string DisplayName => displayName;
 
-        protected virtual void Reset()
-        {
-            trackedTool = transform;
-        }
+        // ── Virtual hooks for subclasses ─────────────────────────────────────
+        protected virtual void OnModeBegun() { }
+        protected virtual void OnModeEnded(ChoreResult result) { }
+        // Called every Update() frame when a new position is sampled by the tool
+        protected virtual void OnTrackedPositionSampled(Vector3 worldPos) { }
+        // Subclasses return bonus points added on top of the base coverage score
+        protected virtual float GetBonusPoints() => 0f;
+
+        protected virtual void Reset() => trackedTool = transform;
 
         protected virtual void Update()
         {
             if (Session == null) return;
             if (trackedTool == null || coverageMap == null) return;
-            coverageMap.MarkVisitedWorldPosition(trackedTool.position);
+
+            var pos = trackedTool.position;
+            coverageMap.MarkVisitedWorldPosition(pos);
+            OnTrackedPositionSampled(pos);
+
+            hud?.SetCoverage(coverageMap.ComputeCoveragePercent());
         }
 
         public virtual void Begin()
@@ -46,6 +62,7 @@ namespace Chorewars.Modes
 
             spatialMeshTracker?.StartScanning();
             houseMapRecorder?.Begin();
+            OnModeBegun();
         }
 
         public virtual void End()
@@ -56,17 +73,29 @@ namespace Chorewars.Modes
             if (coverageMap != null) Session.coveragePercent = coverageMap.ComputeCoveragePercent();
 
             var result = ScoringEngine.Score(Session);
-            _ = result;
+            result.totalPoints += (int)GetBonusPoints();
+            // Re-grade after bonus
+            result.grade = result.totalPoints switch
+            {
+                >= 1100 => "S+",
+                >= 900  => "S",
+                >= 750  => "A",
+                >= 600  => "B",
+                >= 400  => "C",
+                _       => "D"
+            };
+            LastResult = result;
 
             spatialMeshTracker?.StopScanning();
             if (spatialMeshTracker != null)
             {
                 var exportPath = spatialMeshTracker.ExportCurrentSnapshotAsObj(exportPrefix);
-                Debug.Log($"[BoreDOOM] Spatial mesh OBJ exported to: {exportPath}");
+                Debug.Log($"[BoreDOOM] Mesh exported: {exportPath}");
             }
-
             houseMapRecorder?.End();
+
+            OnModeEnded(result);
+            summaryUI?.Show(result);
         }
     }
 }
-
