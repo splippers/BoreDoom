@@ -1,0 +1,8 @@
+{
+  "$schema": "https://opencode.ai/schema/opencode.jsonc",
+  "mcpServers": {
+    "unity-mcp": {
+      "url": "http://localhost:57597"
+    }
+  }
+}

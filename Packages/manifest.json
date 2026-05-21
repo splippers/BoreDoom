@@ -5,6 +5,21 @@
     "com.unity.xr.management": "4.4.0",
     "com.unity.xr.openxr": "1.11.0",
     "com.unity.xr.interaction.toolkit": "2.5.4",
-    "com.unity.ugui": "1.0.0"
-  }
+    "com.unity.ugui": "1.0.0",
+    "com.ivanmurzak.unity.mcp": "0.72.1"
+  },
+  "scopedRegistries": [
+    {
+      "name": "package.openupm.com",
+      "url": "https://package.openupm.com",
+      "scopes": [
+        "com.ivanmurzak",
+        "extensions.unity",
+        "org.nuget.com.ivanmurzak",
+        "org.nuget.microsoft",
+        "org.nuget.system",
+        "org.nuget.r3"
+      ]
+    }
+  ]
 }
